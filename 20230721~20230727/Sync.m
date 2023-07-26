@@ -1,82 +1,129 @@
 % SISO system with synchronization
 clear
 clc
-warning('off')
+% NR frame structure
+SCS=60000;         % subcarrier spacing (Hz): Type A
+Nfft=2048;         % FFT size
+Trf=1e-2;          % 10 ms radio frame (sec)
+Ts=1/(SCS*Nfft);   % Sample time (sec)
+FS=1/Ts;           % Sample Frequency (Hz)
+Nts=Trf/Ts;        % Number of samples per 10 ms radio frame
 
-Data_number = 10000;  % 資料筆數
-SNR_in_dB = 20;       % SNR設定為20dB
-Channel_dB = [-2, -8, -10, -12, -15, -18];
-Ntap = length(Channel_dB);
-N_ID_Cell = 86;       % 同步訊號的長度
-sync_offset_count = zeros(1, 21);  % 偏移量範圍：-10~10
+NSymbolPerSlot=14; % Number of OFDM symbols per slot
+NSlotPerFrame=40;  % Number of slots per 10 ms radio frame
+NSlotPerHalfFrame=5*SCS/15000; % Number of slots per 5 ms half radio frame
+Ncp1=208;          % Number of samples for the first CP in a slot
+Ncp2=144;          % Number of samples for the 2nd to the 14th CP in a slot
+NSamplePerSlot=(Ncp1+Nfft)+(NSymbolPerSlot-1)*(Ncp2+Nfft); % Number of samples per slot
 
-for a = 1:Data_number
-    SNR = 10^(SNR_in_dB/10);
-    No = 10^(-SNR_in_dB/10);
-    
-    %mod
-    data_dec = randi([0, 3], 1644, 560);  % 隨機產生0~3 for 4QAM
-    data_bin = de2bi(data_dec, 2, 'left-msb');  % 將0~3轉換為'00'~'11'
-    data_mod = qammod(data_dec, 4, 'gray') * sqrt(1/2);  % 0~3 to complex (Modulation); 請記得進行正規化
+Nrb=137;           % Number of resource blocks
+Nrb_sc=12;         % Number of subcarriers per resource block
 
-    %Guard Band
-    DC = zeros(1, 560);
-    X = [zeros(202, 560); data_mod(1:822, :); DC; data_mod(823:end, :); zeros(201, 560)];
+% NR physical cell ID (0,1,2,...1007)
+NRPCI=86;          % NR physical cell ID (0,1,2,...1007)
+N_id_2=mod(NRPCI,3);
+N_id_1=floor((NRPCI-N_id_2)/3);
 
-    %IFFT
-    x = ifft(ifftshift(X)) * sqrt(2048);
+% NR-SS sequence generation
+PSSLength=127;     % Length of NR-PSS sequence
+SSSLength=127;     % Length of NR-SSS sequence
 
-    %CP
-    x_CP = zeros(1, 1228800);
-    index = 1;
-    for symbol = 1:560
-        if mod(symbol, 28) - 1
-            x_CP(1, index:index+2048+144-1) = [x(2048-144+1:2048, symbol); x(:, symbol)];
-            index = index + 2048 + 144;
-        else
-            x_CP(1, index:index+2048+208-1) = [x(2048-208+1:2048, symbol); x(:, symbol)];
-            index = index + 2048 + 208;
-        end
-    end
+% PSS and SSS sequences are generated using MATLAB's 5G Toolbox
+PSS = nrPSS(N_id_2); % generate PSS sequence with 5G toolbox
+SSS = nrSSS(N_id_1, N_id_2); % generate SSS sequence with 5G toolbox
 
-    %通道與雜訊
-    PowerdB = Channel_dB;
-    H_Channel = sqrt(10.^(PowerdB/10));
-    h = H_Channel .* sqrt((1/(2*Ntap))*(randn(1, Ntap) + 1i*randn(1, Ntap)));
-    
-    pure_y = conv(x_CP, h);
-    pure_y(:, 1228801:end) = [];  % 刪除最後5筆資料
-    
-    n = sqrt(No/2) * (randn(1, 1228800) + 1i*randn(1, 1228800));  % randn產生雜訊，其變異數為No
-    y = pure_y + n;  % 產生最終傳輸信號，考慮通道和雜訊
-    
-    % 加入同步訊號和空白資料
-    data_sync = [zeros(1, N_ID_Cell), data_mod(1, :), zeros(1, 100)];  % 假設同步訊號長度為 N_ID_Cell，前後加上 100 個空白資料
-    rx_signal = [zeros(1, N_ID_Cell), y, zeros(1, 100)];  % 前後加上 100 個空白資料
-    
-    % 將 data_sync 長度補齊至 rx_signal 長度
-    data_sync_padded = [data_sync, zeros(1, length(rx_signal) - length(data_sync))];
-    
-    % 找到同步偏移量
-    correlation_result = xcorr(rx_signal, fliplr(data_sync_padded));
-    [~, max_index] = max(abs(correlation_result));  % Find the index of the peak
-    sync_offset = max_index - (length(rx_signal) + N_ID_Cell - 1);  % 轉換為同步偏移量
-    
-    % 檢查同步偏移量是否在範圍內
-    if sync_offset >= -10 && sync_offset <= 10
-        sync_offset_count(sync_offset + 11) = sync_offset_count(sync_offset + 11) + 1;
-    else
-        % Debugging: print the sync_offset if it's outside the range
-        fprintf('Trial %d: sync_offset = %d\n', a, sync_offset);
-    end
+%基礎設置
+Tx = 1;
+Rx = 1;
+SNR_in_dB = 20;
+frame_num = 1e4;
+Blank_num = 150;
+
+%4QAM init
+QAM 	= 16;
+Eavg 	= (qammod([0:QAM-1],QAM) * qammod([0:QAM-1],QAM)') / QAM;
+NF 		= 1 / sqrt(Eavg);
+q_bit 	= 4;
+
+%格式化 同步訊號
+PBCH = [ zeros(702,1) ; qammod(randi([0,QAM-1],240,1),QAM,'gray')*NF ; zeros(702,1)];
+PSS  = [ zeros(758,1) ; PSS ; zeros(759,1) ];
+SSS  = [ PBCH(1:750);zeros(8,1);SSS;zeros(9,1);PBCH(895:end) ];
+
+%加上guard band
+g_PBCH = [ zeros(202,1) ;PBCH(1:822) ;0 ;PBCH(823:end) ;zeros(201,1) ];
+g_PSS  = [ zeros(202,1) ; PSS(1:822) ;0 ; PSS(823:end) ;zeros(201,1) ];
+g_SSS  = [ zeros(202,1) ; SSS(1:822) ;0 ; SSS(823:end) ;zeros(201,1) ];
+
+%同步訊號IFFT
+syn_t  = ifft(ifftshift( g_PSS ))*sqrt(2048);
+
+%長條圖參數
+bar_x = -12:12;
+bar_y = zeros(1,25);
+
+%ans zone
+frame_shift_ans = zeros(1,frame_num);
+
+for frame=1:frame_num
+	SNR = 10^( SNR_in_dB/10);
+	No  = 10^(-SNR_in_dB/10);
+	%生產數據
+	data_dec	= randi([0,QAM-1],1644,14*4*10);
+	data_mod	= qammod(data_dec,QAM)*NF;
+	%Synchronization Signal
+	data_mod(:,5) = PSS;
+	data_mod(:,6) = PBCH;
+	data_mod(:,7) = SSS;
+	data_mod(:,8) = PBCH;
+	
+	%Guard Band
+	DC =   zeros(1,14*4*10);
+	X  =   [ zeros(202,14*4*10) ;data_mod(1:822,:) ;DC ;data_mod(823:end,:) ;zeros(201,14*4*10) ];	
+	%IFFT
+	x  = ifft(ifftshift(X))*sqrt(2048);
+	%CP
+	x_CP = zeros(1,1228800);
+	index=1;
+	for symbol=1:14*4*10
+		if	mod(symbol,28)-1
+			x_CP(1, index:index+2048+144-1)=[ x(2048-144+1:2048,symbol) ; x(:,symbol)];
+			index = index+2048+144;
+		else
+			x_CP(1, index:index+2048+208-1)=[ x(2048-208+1:2048,symbol) ; x(:,symbol)];
+			index = index+2048+208;
+		end
+	end
+	%通道與雜訊
+	PowerdB 		= [ -2 -8 -10 -12 -15 -18];
+	Total_H_Power 	= sum(10.^(PowerdB/10));        %總通道能量 = 1
+	Ntap 			= 6;                            %通道數量
+	H_Channel 		= sqrt(10.^(PowerdB/10));
+	H_Channel   	= H_Channel .* (sqrt( 1/(2*Tx) ) * ( randn(1,Ntap) + 1i*randn(1,Ntap) ) );
+	%訊號通過通道
+	H_y					= conv( x_CP, H_Channel );
+	H_y(:,1228801:end)  = [];			            %刪除最後5筆資料
+	
+	%產生訊號
+	n = sqrt(No/2) *( randn(1,1228800+2*Blank_num) + randn(1,1228800+2*Blank_num)*1i );% randn產生noise variance=No
+	y = [zeros(1,Blank_num) ,H_y ,zeros(1,Blank_num)]+n;    %noise off
+	
+	%接收後處理開始
+	%同步偵測(Synchronization)
+	syn_corr = xcorr(syn_t,y);
+	[syn_max , syn_pos]	= max(syn_corr);
+	[ram_a,ram_b]		= size(syn_corr);
+	%紀錄目前偏移
+	element_pos = 623378;
+	frame_shift_ans(frame) = ceil(ram_a/2)- element_pos -syn_pos - Blank_num;
 end
 
-% 輸入同步偏移量次數並繪製柱狀圖
-figure(1)
-bar(-10:10, sync_offset_count)
-grid on
-axis square
-axis tight
-title('Sync Offset Count of SISO with Synchronization')
-xlabel('Sync Offset')
-ylabel('Sync Offset Count')
+%畫圖
+for i=1:25
+	num = i-13;
+	bar_y(i) = length(find(frame_shift_ans==num));
+end
+bar(bar_x,bar_y);
+title('Synchronization 不同的偏移量次數')
+xlabel('偏移量')
+ylabel('偏移次數')

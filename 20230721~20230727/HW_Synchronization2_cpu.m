@@ -52,7 +52,7 @@ for frame=1:frame_num
 	DC =   zeros(1,14*4*10);
 	X  =   [ zeros(202,14*4*10) ;data_mod(1:822,:) ;DC ;data_mod(823:end,:) ;zeros(201,14*4*10) ];	
 	%IFFT
-	x  = ifft(ifftshift(X))*sqrt(2048);	%	2048 x 14*4*10	%%%%%%%										
+	x  = ifft(ifftshift(X))*sqrt(2048);	%	2048 x 14*4*10
 	%CP
 	x_CP = zeros(1,1228800);
 	index=1;
@@ -67,17 +67,17 @@ for frame=1:frame_num
 	end
 	%通道與雜訊
 	PowerdB 		= [ -2 -8 -10 -12 -15 -18];
-	Total_H_Power 	= sum(10.^(PowerdB/10)); %總通道能量 = 1
-	Ntap 			= 6;%通道數量
+	Total_H_Power 	= sum(10.^(PowerdB/10));        %總通道能量 = 1
+	Ntap 			= 6;                            %通道數量
 	H_Channel 		= sqrt(10.^(PowerdB/10));
 	H_Channel   	= H_Channel .* (sqrt( 1/(2*Tx) ) * ( randn(1,Ntap) + 1i*randn(1,Ntap) ) );
 	%訊號通過通道
 	H_y					= conv( x_CP, H_Channel );
-	H_y(:,1228801:end)  = [];			%刪除最後5筆資料
+	H_y(:,1228801:end)  = [];			            %刪除最後5筆資料
 	
 	%產生訊號
 	n = sqrt(No/2) *( randn(1,1228800+2*Blank_num) + randn(1,1228800+2*Blank_num)*1i );% randn產生noise variance=No
-	y = [zeros(1,Blank_num) ,H_y ,zeros(1,Blank_num)]+n;%noise off
+	y = [zeros(1,Blank_num) ,H_y ,zeros(1,Blank_num)]+n;    %noise off
 	
 	%接收後處理開始
 	%同步偵測(Synchronization)
