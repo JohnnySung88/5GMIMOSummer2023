@@ -1,7 +1,6 @@
-% SISO system with synchronization
 clear
 clc
-% NR frame structure
+%% NR frame structure
 SCS=60000;         % subcarrier spacing (Hz): Type A
 Nfft=2048;         % FFT size
 Trf=1e-2;          % 10 ms radio frame (sec)
@@ -18,19 +17,20 @@ NSamplePerSlot=(Ncp1+Nfft)+(NSymbolPerSlot-1)*(Ncp2+Nfft); % Number of samples p
 
 Nrb=137;           % Number of resource blocks
 Nrb_sc=12;         % Number of subcarriers per resource block
-
-% NR physical cell ID (0,1,2,...1007)
+%% NR physical cell ID (0,1,2,...1007)
 NRPCI=86;          % NR physical cell ID (0,1,2,...1007)
 N_id_2=mod(NRPCI,3);
 N_id_1=floor((NRPCI-N_id_2)/3);
-
-% NR-SS sequence generation
+%% NR-SS sequence generation
 PSSLength=127;     % Length of NR-PSS sequence
 SSSLength=127;     % Length of NR-SSS sequence
 
-% PSS and SSS sequences are generated using MATLAB's 5G Toolbox
-PSS = nrPSS(N_id_2); % generate PSS sequence with 5G toolbox
-SSS = nrSSS(N_id_1, N_id_2); % generate SSS sequence with 5G toolbox
+% Use 5G Toolbox functions to generate PSS and SSS sequences
+PSS = nrPSS(N_id_2);
+SSS = nrSSS(N_id_1*3 + N_id_2);  % Input the cell ID directly to the function
+
+PSS = PSS.';
+SSS = SSS.';
 
 %基礎設置
 Tx = 1;
@@ -43,17 +43,27 @@ Blank_num = 150;
 QAM 	= 16;
 Eavg 	= (qammod([0:QAM-1],QAM) * qammod([0:QAM-1],QAM)') / QAM;
 NF 		= 1 / sqrt(Eavg);
-q_bit 	= 4;
+q_bit 	= 4;        % 一個symbol可以傳幾個bit
 
 %格式化 同步訊號
 PBCH = [ zeros(702,1) ; qammod(randi([0,QAM-1],240,1),QAM,'gray')*NF ; zeros(702,1)];
+PSS = PSS(:);  % Ensure PSS is a column vector
 PSS  = [ zeros(758,1) ; PSS ; zeros(759,1) ];
-SSS  = [ PBCH(1:750);zeros(8,1);SSS;zeros(9,1);PBCH(895:end) ];
+SSS = SSS(:);  % Ensure SSS is a column vector
+PBCH = PBCH(:);  % Ensure PBCH is a column vector
 
+disp(size(PBCH(1:750)));
+disp(size(zeros(8,1)));
+disp(size(SSS));
+disp(size(zeros(9,1)));
+disp(size(PBCH(895:end)));
+
+SSS  = [ PBCH(1:750);zeros(8,1);SSS;zeros(9,1);PBCH(895:end) ];
 %加上guard band
 g_PBCH = [ zeros(202,1) ;PBCH(1:822) ;0 ;PBCH(823:end) ;zeros(201,1) ];
 g_PSS  = [ zeros(202,1) ; PSS(1:822) ;0 ; PSS(823:end) ;zeros(201,1) ];
 g_SSS  = [ zeros(202,1) ; SSS(1:822) ;0 ; SSS(823:end) ;zeros(201,1) ];
+
 
 %同步訊號IFFT
 syn_t  = ifft(ifftshift( g_PSS ))*sqrt(2048);
@@ -69,8 +79,9 @@ for frame=1:frame_num
 	SNR = 10^( SNR_in_dB/10);
 	No  = 10^(-SNR_in_dB/10);
 	%生產數據
-	data_dec	= randi([0,QAM-1],1644,14*4*10);
-	data_mod	= qammod(data_dec,QAM)*NF;
+	data_dec	= randi([0,QAM-1],1644,14*4*10); 		% 隨機產生0~3 for 4QAM
+	%data_bin 	= dec2bin(bin2gray(data_dec	 ,'qam'	,QAM 	),q_bit);   	% 將 0~3 轉為 '00'~'11'
+	data_mod	= qammod(data_dec,QAM)*NF;       % 0~3 to complex (Modulation); remember to normalize
 	%Synchronization Signal
 	data_mod(:,5) = PSS;
 	data_mod(:,6) = PBCH;
@@ -81,7 +92,7 @@ for frame=1:frame_num
 	DC =   zeros(1,14*4*10);
 	X  =   [ zeros(202,14*4*10) ;data_mod(1:822,:) ;DC ;data_mod(823:end,:) ;zeros(201,14*4*10) ];	
 	%IFFT
-	x  = ifft(ifftshift(X))*sqrt(2048);
+	x  = ifft(ifftshift(X))*sqrt(2048);	%	2048 x 14*4*10
 	%CP
 	x_CP = zeros(1,1228800);
 	index=1;
