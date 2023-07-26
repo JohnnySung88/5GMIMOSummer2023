@@ -1,7 +1,7 @@
-%¥Í¦¨PSS SSS PBCH¸ê®Æ
+%ç”ŸæˆPSS SSS PBCHè³‡æ–™
 SSB_5G_NR;
 
-%°òÂ¦³]¸m
+%åŸºç¤è¨­ç½®
 Tx = 1;
 Rx = 1;
 SNR_in_dB = 20;
@@ -12,23 +12,23 @@ Blank_num = 150;
 QAM 	= 16;
 Eavg 	= (qammod([0:QAM-1],QAM) * qammod([0:QAM-1],QAM)') / QAM;
 NF 		= 1 / sqrt(Eavg);
-q_bit 	= 4;        % ¤@­Ósymbol¥i¥H¶Ç´X­Óbit
+q_bit 	= 4;        % ä¸€å€‹symbolå¯ä»¥å‚³å¹¾å€‹bit
 
-%®æ¦¡¤Æ ¦P¨B°T¸¹
+%æ ¼å¼åŒ– åŒæ­¥è¨Šè™Ÿ
 PBCH = [ zeros(702,1) ; qammod(randi([0,QAM-1],240,1),QAM,'gray')*NF ; zeros(702,1)];
 PSS  = [ zeros(758,1) ; PSS 		; zeros(759,1) ];
 SSS  = [ PBCH(1:750);zeros(8,1);SSS;zeros(9,1);PBCH(895:end) ];
 
-%¥[¤Wguard band
+%åŠ ä¸Šguard band
 g_PBCH = [ zeros(202,1) ;PBCH(1:822) ;0 ;PBCH(823:end) ;zeros(201,1) ];
 g_PSS  = [ zeros(202,1) ; PSS(1:822) ;0 ; PSS(823:end) ;zeros(201,1) ];
 g_SSS  = [ zeros(202,1) ; SSS(1:822) ;0 ; SSS(823:end) ;zeros(201,1) ];
 
 
-%¦P¨B°T¸¹IFFT
+%åŒæ­¥è¨Šè™ŸIFFT
 syn_t  = ifft(ifftshift( g_PSS ))*sqrt(2048);
 
-%ªø±ø¹Ï°Ñ¼Æ
+%é•·æ¢åœ–åƒæ•¸
 bar_x = -12:12;
 bar_y = zeros(1,25);
 
@@ -38,9 +38,9 @@ frame_shift_ans = zeros(1,frame_num);
 for frame=1:frame_num
 	SNR = 10^( SNR_in_dB/10);
 	No  = 10^(-SNR_in_dB/10);
-	%¥Í²£¼Æ¾Ú
-	data_dec	= randi([0,QAM-1],1644,14*4*10); 		% ÀH¾÷²£¥Í0~3 for 4QAM
-	%data_bin 	= dec2bin(bin2gray(data_dec	 ,'qam'	,QAM 	),q_bit);   	% ±N 0~3 Âà¬° '00'~'11'
+	%ç”Ÿç”¢æ•¸æ“š
+	data_dec	= randi([0,QAM-1],1644,14*4*10); 		% éš¨æ©Ÿç”¢ç”Ÿ0~3 for 4QAM
+	%data_bin 	= dec2bin(bin2gray(data_dec	 ,'qam'	,QAM 	),q_bit);   	% å°‡ 0~3 è½‰ç‚º '00'~'11'
 	data_mod	= qammod(data_dec,QAM)*NF;       % 0~3 to complex (Modulation); remember to normalize
 	%Synchronization Signal
 	data_mod(:,5) = PSS;
@@ -65,36 +65,36 @@ for frame=1:frame_num
 			index = index+2048+208;
 		end
 	end
-	%³q¹D»PÂø°T
+	%é€šé“èˆ‡é›œè¨Š
 	PowerdB 		= [ -2 -8 -10 -12 -15 -18];
-	Total_H_Power 	= sum(10.^(PowerdB/10));        %Á`³q¹D¯à¶q = 1
-	Ntap 			= 6;                            %³q¹D¼Æ¶q
+	Total_H_Power 	= sum(10.^(PowerdB/10));        %ç¸½é€šé“èƒ½é‡ = 1
+	Ntap 			= 6;                            %é€šé“æ•¸é‡
 	H_Channel 		= sqrt(10.^(PowerdB/10));
 	H_Channel   	= H_Channel .* (sqrt( 1/(2*Tx) ) * ( randn(1,Ntap) + 1i*randn(1,Ntap) ) );
-	%°T¸¹³q¹L³q¹D
+	%è¨Šè™Ÿé€šéé€šé“
 	H_y					= conv( x_CP, H_Channel );
-	H_y(:,1228801:end)  = [];			            %§R°£³Ì«á5µ§¸ê®Æ
+	H_y(:,1228801:end)  = [];			            %åˆªé™¤æœ€å¾Œ5ç­†è³‡æ–™
 	
-	%²£¥Í°T¸¹
-	n = sqrt(No/2) *( randn(1,1228800+2*Blank_num) + randn(1,1228800+2*Blank_num)*1i );% randn²£¥Ínoise variance=No
+	%ç”¢ç”Ÿè¨Šè™Ÿ
+	n = sqrt(No/2) *( randn(1,1228800+2*Blank_num) + randn(1,1228800+2*Blank_num)*1i );% randnç”¢ç”Ÿnoise variance=No
 	y = [zeros(1,Blank_num) ,H_y ,zeros(1,Blank_num)]+n;    %noise off
 	
-	%±µ¦¬«á³B²z¶}©l
-	%¦P¨B°»´ú(Synchronization)
+	%æ¥æ”¶å¾Œè™•ç†é–‹å§‹
+	%åŒæ­¥åµæ¸¬(Synchronization)
 	syn_corr = xcorr(syn_t,y);
 	[syn_max , syn_pos]	= max(syn_corr);
 	[ram_a,ram_b]		= size(syn_corr);
-	%¬ö¿ı¥Ø«e°¾²¾
+	%ç´€éŒ„ç›®å‰åç§»
 	element_pos = 623378;
 	frame_shift_ans(frame) = ceil(ram_a/2)- element_pos -syn_pos - Blank_num;
 end
 
-%µe¹Ï
+%ç•«åœ–
 for i=1:25
 	num = i-13;
 	bar_y(i) = length(find(frame_shift_ans==num));
 end
 bar(bar_x,bar_y);
-title('Synchronization ¤£¦Pªº°¾²¾¶q¦¸¼Æ')
-xlabel('°¾²¾¶q')
-ylabel('°¾²¾¦¸¼Æ')
+title('Synchronization ä¸åŒçš„åç§»é‡æ¬¡æ•¸')
+xlabel('åç§»é‡')
+ylabel('åç§»æ¬¡æ•¸')
