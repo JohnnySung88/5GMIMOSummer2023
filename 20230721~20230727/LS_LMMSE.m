@@ -10,7 +10,7 @@ DMRS_DATA 	= -0.7071 - 0.7071*1i ;
 
 % choose QAM= 4/16/64;
 QAM 	= 16;
-Eavg 	= (QAMMOD([0:QAM-1],QAM) * QAMMOD([0:QAM-1],QAM)') / QAM;
+Eavg 	= (qammod([0:QAM-1],QAM) * qammod([0:QAM-1],QAM)') / QAM;
 NF 		= 1 / sqrt(Eavg);
 q_bit 	= log2(QAM);        % 一個symbol可以傳幾個bit
 Tx 		= 1;
@@ -32,7 +32,7 @@ for a=1:length(SNR_in_dB)
 		No  = 10^(-SNR_in_dB(a)/10);
 		%生產數據
 		data_dec_RB	= randi([0,QAM-1],12,14); 		% 隨機產生QAM
-		data_mod_RB	= QAMMOD(data_dec_RB,QAM)*NF;   % 0~3 to complex (Modulation); remember to normalize
+		data_mod_RB	= qammod(data_dec_RB,QAM)*NF;   % 0~3 to complex (Modulation); remember to normalize
 		%安置DMRS
 		data_mod_RB(2:2:12,3) = DMRS_DATA;
 		%擴展資料
