@@ -1,4 +1,4 @@
-%LMMSE Åv­«¯x°}
+%LMMSE æ¬Šé‡çŸ©é™£
 function W = make_W(window_loc,SNR_weight_loc)
 	N_fft 	=2048;
 	R_H_H	=zeros( 822,822);
@@ -22,5 +22,5 @@ function W = make_W(window_loc,SNR_weight_loc)
 		end
 	end
 	SNR_W 	= 10^( SNR_weight_loc /10);
-	W		= R_H_HLS * inv(R_H_H + (1/SNR_W) * eye(822) );%Åv­«¯x°}
+	W		= R_H_HLS * inv(R_H_H + (1/SNR_W) * eye(822) );%æ¬Šé‡çŸ©é™£
 end

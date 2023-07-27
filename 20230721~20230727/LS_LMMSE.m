@@ -1,8 +1,8 @@
 clear
 clc
 
-%°²³]³W½d
-SNR_in_dB 	= 0:5:40;	% ¦Û¤v³]­qÂø°T¤j¤p
+%å‡è¨­è¦ç¯„
+SNR_in_dB 	= 0:5:40;	% è‡ªå·±è¨­è¨‚é›œè¨Šå¤§å°
 SNR_weight 	= 40;
 window 		= 6;
 frame_num 	= 50;		%10ms 10subframe 
@@ -12,14 +12,14 @@ DMRS_DATA 	= -0.7071 - 0.7071*1i ;
 QAM 	= 16;
 Eavg 	= (qammod([0:QAM-1],QAM) * qammod([0:QAM-1],QAM)') / QAM;
 NF 		= 1 / sqrt(Eavg);
-q_bit 	= log2(QAM);        % ¤@­Ósymbol¥i¥H¶Ç´X­Óbit
+q_bit 	= log2(QAM);        % ä¸€å€‹symbolå¯ä»¥å‚³å¹¾å€‹bit
 Tx 		= 1;
 
 %output
 MSE_dB_LS		=zeros(1,length(SNR_in_dB));
 MSE_dB_LMMSE	=zeros(1,length(SNR_in_dB));
 
-%LMMSE Åv­«¯x°}
+%LMMSE æ¬Šé‡çŸ©é™£
 W = make_W_S(window,SNR_weight);
 
 for a=1:length(SNR_in_dB)
@@ -30,12 +30,12 @@ for a=1:length(SNR_in_dB)
         fprintf("SNR : %d/%d \t frame : %d/%d\n",a,length(SNR_in_dB),frame,frame_num);
 		SNR = 10^( SNR_in_dB(a)/10);
 		No  = 10^(-SNR_in_dB(a)/10);
-		%¥Í²£¼Æ¾Ú
-		data_dec_RB	= randi([0,QAM-1],12,14); 		% ÀH¾÷²£¥ÍQAM
+		%ç”Ÿç”¢æ•¸æ“š
+		data_dec_RB	= randi([0,QAM-1],12,14); 		% éš¨æ©Ÿç”¢ç”ŸQAM
 		data_mod_RB	= qammod(data_dec_RB,QAM)*NF;   % 0~3 to complex (Modulation); remember to normalize
-		%¦w¸mDMRS
+		%å®‰ç½®DMRS
 		data_mod_RB(2:2:12,3) = DMRS_DATA;
-		%ÂX®i¸ê®Æ
+		%æ“´å±•è³‡æ–™
 		data_mod = repmat(data_mod_RB,137,40);
 		%Guard Band
 		DC =     zeros(  1,14*4*10);
@@ -54,19 +54,19 @@ for a=1:length(SNR_in_dB)
 				index = index+2048+208;
 			end
 		end
-		%³q¹D»PÂø°T
+		%é€šé“èˆ‡é›œè¨Š
 		PowerdB 		= [ -2 -8 -10 -12 -15 -18];
-		Total_H_Power 	= sum(10.^(PowerdB/10)); 	%Á`³q¹D¯à¶q = 1
-		Ntap = 6;									%³q¹D¼Æ¶q
+		Total_H_Power 	= sum(10.^(PowerdB/10)); 	%ç¸½é€šé“èƒ½é‡ = 1
+		Ntap = 6;									%é€šé“æ•¸é‡
 		H_Channel 	=  sqrt(10.^(PowerdB/10));
 		H_Channel   =  H_Channel .* ( sqrt( 1/(2*Tx) ) * ( randn(1,Ntap) + 1i*randn(1,Ntap) ) );
-		%°T¸¹³q¹L³q¹D
+		%è¨Šè™Ÿé€šéé€šé“
 		H_y					= conv( x_CP, H_Channel );
-		H_y(:,1228801:end)  = [];			%§R°£³Ì«á5µ§¸ê®Æ		
-		%²£¥Í°T¸¹
-		n 			= sqrt(No/2) *( randn(1,1228800) + randn(1,1228800)*1i );% randn²£¥Ínoise variance=No
+		H_y(:,1228801:end)  = [];			%åˆªé™¤æœ€å¾Œ5ç­†è³‡æ–™		
+		%ç”¢ç”Ÿè¨Šè™Ÿ
+		n 			= sqrt(No/2) *( randn(1,1228800) + randn(1,1228800)*1i );% randnç”¢ç”Ÿnoise variance=No
 		y			= H_y+ n;
-		%²¾°£CP
+		%ç§»é™¤CP
 		y_rmCP		= zeros(2048 , 560);
 		index  = 1;
 		for symbol = 1:560
@@ -78,29 +78,29 @@ for a=1:length(SNR_in_dB)
 				index  = index +208+2048;
 			end
 		end
-		%FFT----¥H¤U¬°ÀW°ì (test OK
+		%FFT----ä»¥ä¸‹ç‚ºé »åŸŸ (test OK
 		Y_fft 	= fftshift( fft( y_rmCP/sqrt(2048) ) ,1);
 		%rm Guard Band(test OK
 		Y	  	= [ Y_fft( 203:1024,:) ; Y_fft( 1026:1847,:) ];
-		%¹ê»Ú³q¹D  (test OK
+		%å¯¦éš›é€šé“  (test OK
 		h		= [H_Channel,zeros(1,2042)];
 		H		= fftshift(fft(h));
 		H_Data 	= [H(1,203:1024),H(1,1026:1847)].';	%rmGB
 		H_frame = repmat(H_Data,1,560);				%allframe
-		%¨ú±oLS¦ô´úµ²ªG¡A20­Óslot ¨C­Ó³£­n¦ô
+		%å–å¾—LSä¼°æ¸¬çµæœï¼Œ20å€‹slot æ¯å€‹éƒ½è¦ä¼°
 		X_LS 	= DMRS_DATA * eye(1644/2);
 		Y_LS 	= Y(2:2:1644 , 3:14:560);
 		H_LS 	= inv(X_LS)*Y_LS;
-		%¨ú±oLMMSE¦ô´úµ²ªG
+		%å–å¾—LMMSEä¼°æ¸¬çµæœ
 		H_LMMSE 	= W * H_LS;
-		%²£¥Í¯u¹ê³q¹D
+		%ç”¢ç”ŸçœŸå¯¦é€šé“
 		H_LS_R 		= H_frame(2:2:1644 , 3:14:560);
 		H_LMMSE_R 	= H_frame(1:1:1644 , 3:14:560);
-		%²Ö¥[
+		%ç´¯åŠ 
 		MSE_LS		= MSE_LS    + sum( abs( H_LS_R    - H_LS    ).^2,'all');
 		MSE_LMMSE	= MSE_LMMSE + sum( abs( H_LMMSE_R - H_LMMSE ).^2,'all');
 	end
-	%­pºâMSE¼Æ­È
+	%è¨ˆç®—MSEæ•¸å€¼
 	MSE_dB_LS   (a)	= 10*log10( MSE_LS    / ( 822*40*frame_num) );
 	MSE_dB_LMMSE(a)	= 10*log10( MSE_LMMSE / (1644*40*frame_num) );
 end
@@ -111,6 +111,7 @@ hold on;
 plot(SNR_in_dB,MSE_dB_LMMSE,'b-','LineWidth',2);
 hold on;
 title('5G-NR SISO-OFDM MSE of ZF');
+grid on;
 xlabel('SNR (dB)');
 ylabel('SNR(dB) from MSE');
 legend('LS MSE','LMMSE MSE');
