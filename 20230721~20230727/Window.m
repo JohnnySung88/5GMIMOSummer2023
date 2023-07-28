@@ -2,7 +2,7 @@ clear
 clc
 
 % 假設規範
-SNR_in_dB 	= 0:5:40;	% 自己設訂雜訊大小
+SNR_in_dB 	= 0:5:30;	% 自己設訂雜訊大小
 SNR_weight 	= 40;
 Windows     = [4 6 8 14];
 frame_num 	= 50;		%10ms 10subframe 
@@ -120,8 +120,8 @@ for w=1:length(Windows)
     hold on;
 end
 
-title('5G-NR SISO-OFDM MSE of ZF');
+title('不同Window 權重大小比較');
 grid on;
 xlabel('SNR (dB)');
-ylabel('SNR(dB) from MSE');
+ylabel('MSE (dB)');
 legend('LS MSE', 'LMMSE MSE (W=4)', 'LMMSE MSE (W=6)', 'LMMSE MSE (W=8)', 'LMMSE MSE (W=14)');

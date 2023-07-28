@@ -30,7 +30,7 @@ for i=1:length(SNR_weights) % New loop for different SNR weights
         MSE_LMMSE		= 0;
 
         parfor frame=1:frame_num
-            fprintf("SNR : %d/%d \t frame : %d/%d\n",a,length(SNR_in_dB),frame,frame_num);
+            fprintf("SNR_weights: %d/%d \t SNR_in_dB : %d/%d \t frame : %d/%d\n", i, length(SNR_weights), a,length(SNR_in_dB),frame,frame_num);
 		    SNR = 10^( SNR_in_dB(a)/10);
 		    No  = 10^(-SNR_in_dB(a)/10);
 		    %生產數據
@@ -117,8 +117,8 @@ for i=1:length(SNR_weights)
     plot(SNR_in_dB,MSE_dB_LMMSE(i,:), color(i),'LineWidth',2);
     hold on;
 end
-title('5G-NR SISO-OFDM MSE of ZF');
+title('不同SNR 權重大小比較');
 grid on;
 xlabel('SNR (dB)');
-ylabel('SNR(dB) from MSE');
+ylabel('MSE (dB)');
 legend(['LS MSE', arrayfun(@(x) ['LMMSE SNR=' num2str(x)], SNR_weights, 'UniformOutput', false)]); % Modify legend
