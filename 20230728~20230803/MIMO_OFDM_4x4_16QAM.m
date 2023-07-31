@@ -108,6 +108,8 @@ figure(1)
 semilogy(SNR_in_dB,BER_SNR(1,:),'r-o','LineWidth',2)
 hold on
 grid on
+axis tight
+axis square
 title('BER of 5G NR MIMO OFDM')
 xlabel('SNR (dB)')
 ylabel('BER')
