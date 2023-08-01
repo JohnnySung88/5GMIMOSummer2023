@@ -109,7 +109,7 @@ for a=1:length(SNR_in_dB)
         BER = BER + sum(sum(data_bin ~= data_bin_hat ));
     end
     
-	BER_SNR(1,a) = BER/(1644 * 560 * frame_num * q_bit * Tx );
+	BER_SNR(1,a) = BER/(1644 * 560 * Data_num * q_bit * Tx );
 end
 
 figure(1)
