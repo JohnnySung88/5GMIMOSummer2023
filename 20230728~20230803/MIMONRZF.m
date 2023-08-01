@@ -94,12 +94,8 @@ for a=1:length(SNR_in_dB)
         H_Data  = [H(203:1024,:,:);H(1026:1847,:,:)];   %rmGB
         H_frame = permute(repmat( H_Data(:,:,:),1,1,1,560),[1 4 2 3]  );
         X_hat = zeros(1644,560,Tx);
-        for i=1:560
-            for k=1:1644
-                H_eq = reshape(H_frame(k,i,:,:),[Rx Tx]);
-                X_hat(k,i,:) = reshape(Y(k,i,:),[Rx 1])'/(H_eq'*H_eq)*H_eq';  %ZF detection
-            end
-        end
+        X_hat = ZFDC(Y,H_frame,Tx);
+        X_hat = X_hat/NF;
 
         % De-Mod
         data_dec_hat = qamdemod(X_hat,QAM,'gray');
