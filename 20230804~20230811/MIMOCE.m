@@ -6,7 +6,7 @@ Tx = 2; % number of transmit antennas
 Rx = 2; % number of receive antennas
 Data_num = 200;
 SNR_in_dB = 0:5:40;
-BER_SNR=zeros(1,length(SNR_in_dB));
+% BER_SNR=zeros(1,length(SNR_in_dB));
 SNR_weight  = 45;
 window      = 10;
 DMRS_DATA   = -0.7071 - 0.7071*1i ;
@@ -30,7 +30,7 @@ for a=1:length(SNR_in_dB)
     MSE_dB_INTERPOLATION = 0;
     SNR = 10^(SNR_in_dB(a)/10);
     No  = 1/SNR;
-    BER = 0;
+    % BER = 0;
     for Data=1:Data_num
     fprintf("SNR : %d/%d \t Data : %d/%d\n",a,length(SNR_in_dB),Data,Data_num);
 
@@ -151,11 +151,11 @@ for a=1:length(SNR_in_dB)
 		MSE_LMMSE	= MSE_LMMSE + sum( abs( H_LMMSE_R - H_LMMSE ).^2,'all');
 
         % BER
-        BER = BER + sum(sum(data_bin ~= data_bin_hat ));
+        % BER = BER + sum(sum(data_bin ~= data_bin_hat ));
     end
     %計算MSE數值
-	MSE_dB_LS   (a)	= 10*log10( MSE_LS    / ( 822*40*Data_num) );
-	MSE_dB_LMMSE(a)	= 10*log10( MSE_LMMSE / (1644*40*Data_num) );
+	MSE_dB_LS   (a)	= 10*log10( MSE_LS    / ( 822*560*Data_num) );
+	MSE_dB_LMMSE(a)	= 10*log10( MSE_LMMSE / (1644*560*Data_num) );
     %MSE_dB_INTERPOLATION(a) = 10*log10( MSE_INTERPOLATION / (1644*40*Data_num) );
     %BER_SNR(1,a) = BER/(1644 * 560 * Data_num * q_bit * Tx );
 end
