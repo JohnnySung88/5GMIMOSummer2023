@@ -135,9 +135,9 @@ for a=1:length(SNR_in_dB)
         X_LMMSE = X_LMMSE/NF;
 
         % Interpolation Detector
-        % X_Interpolation = zeros(1644,560,Tx);
-        % X_Interpolation = Interpolation(Y,H_frame,Tx,W);
-        % X_Interpolation = X_Interpolation/NF;
+        X_Interpolation = zeros(1644,560,Tx);
+        X_Interpolation = InterpolationDetector(Y, H_frame, Tx, W);
+        X_Interpolation = X_Interpolation / NF;
 
         % De-Mod
         % data_dec_hat = qamdemod(X_hat,QAM,'gray');
@@ -146,9 +146,11 @@ for a=1:length(SNR_in_dB)
         %產生真實通道
 		H_LS_R 		= H_frame(2:2:1644 , 3:14:560);
 		H_LMMSE_R 	= H_frame(1:1:1644 , 3:14:560);
+        H_Interpolation_R = H_frame(1:1:1644, 3:14:560);
 		%累加
 		MSE_LS		= MSE_LS    + sum( abs( H_LS_R    - H_LS    ).^2,'all');
 		MSE_LMMSE	= MSE_LMMSE + sum( abs( H_LMMSE_R - H_LMMSE ).^2,'all');
+        MSE_INTERPOLATION = sum(abs(H_Interpolation_R - X_Interpolation).^2, 'all');
 
         % BER
         % BER = BER + sum(sum(data_bin ~= data_bin_hat ));
@@ -156,14 +158,14 @@ for a=1:length(SNR_in_dB)
     %計算MSE數值
 	MSE_dB_LS   (a)	= 10*log10( MSE_LS    / ( 822*560*Data_num) );
 	MSE_dB_LMMSE(a)	= 10*log10( MSE_LMMSE / (1644*560*Data_num) );
-    %MSE_dB_INTERPOLATION(a) = 10*log10( MSE_INTERPOLATION / (1644*40*Data_num) );
+    MSE_dB_INTERPOLATION(a) = 10*log10( MSE_INTERPOLATION / (1644*40*Data_num) );
     %BER_SNR(1,a) = BER/(1644 * 560 * Data_num * q_bit * Tx );
 end
 
 figure(1)
 semilogy(SNR_in_dB,MSE_dB_LS(1,:),'r-x', 'LineWidth',2)
 semilogy(SNR_in_dB,MSE_dB_LMMSE(1,:),'b-o', 'LineWidth',2)
-%semilogy(SNR_in_dB,MSE_dB_INTERPOLATION(1,:),'g-o', 'LineWidth',2)
+semilogy(SNR_in_dB,MSE_dB_INTERPOLATION(1,:),'g-o', 'LineWidth',2)
 hold on
 grid on
 axis square;
