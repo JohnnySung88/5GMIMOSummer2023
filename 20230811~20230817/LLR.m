@@ -1,30 +1,32 @@
-%MIMO system
+%2x2MIMO ZF LLR
 clear
 clc
-rng(123);
+
 %假設規範
-frame_num 	= 500;
-SNR_in_dB 	= 0:5:40;        % 自己設訂雜訊大小
+frame_num 	= 20;
+SNR_in_dB 	= 0:5:40;
 SNR_weight 	= 45;
 window 		= 10;
 DMRS_DATA 	= +0.7071 + 0.7071*1i ;
-CFO_ignore	= 5;
 Fs			= 122.88e6;
 delta_f		= 1000;
 
-%Data pos
-DMRS_SC = [2:2:1644];
-Data_SC = [1:1:1644];
-DMRS_sym= [3:14:560];
+Tx		  	= 2;
+Rx		  	= 2;
+QAM 	= 16;
+q_bit 	= log2(QAM);
+Eavg 	= (qammod([0:QAM-1],QAM) * qammod([0:QAM-1],QAM)') / QAM;
+%Eavg = mean(abs(qammod([0:QAM-1], QAM)).^2);
+NF 		= 1 / sqrt(Eavg);
 
 %LMMSE init
 N_fft 	=2048;
-R_HD_HD	=zeros( 822,822);
+R_HD_HD	=zeros(822,822);
 R_H_HD	=zeros(1644,822);
 DMRS_pos=[204:2:1024,1027:2:1847];
 Real_pos=[203:1:1024,1026:1:1847];
 for p=1:822
-	for k=1:822%R_HD_HD 822*822
+	for k=1:822
 		if DMRS_pos(k)==DMRS_pos(p)
 			R_HD_HD  (k,p)=1;
 		else
@@ -41,38 +43,29 @@ for p=1:822
 end
 SNR_W 	= 10^( SNR_weight /10);
 
+%Result Subtract init 
+Result=zeros(1,length(SNR_in_dB));
 
-% choose QAM= 4/16/64;
-QAM 	= 16;
-Eavg 	= (qammod([0:QAM-1],QAM) * qammod([0:QAM-1],QAM)') / QAM;
-NF 		= 1 / sqrt(Eavg);
-q_bit 	= log2(QAM);        % 一個symbol可以傳幾個bit
-Tx		  	= 2;
-Rx		  	= 2;
-
-%output
-BER_SNR=zeros(1,length(SNR_in_dB));
-
-for a=1:length(SNR_in_dB)
-	SNR = 10^( SNR_in_dB(a)/10);
-	No  = 10^(-SNR_in_dB(a)/10);
-	BER = 0;                         % 算error rate要作平均
-	fprintf("SNR : %d/%d \n\n",a,length(SNR_in_dB));
+for time=1:length(SNR_in_dB)
+	SNR = 10^( SNR_in_dB(time)/10);
+	No  = 10^(-SNR_in_dB(time)/10);
+	BER = 0;
     parfor_progress(frame_num);
-	parfor frame=1:frame_num	
+	parfor frame=1:frame_num
+		fprintf("SNR : %d/%d \n\n",time,length(SNR_in_dB));	
 		%輸入資料(含DMRS)
-		data_dec_L	= randi  ([0,QAM-1], Tx*(1644*560-822*40),1);
-		data_mod_L	= qammod (data_dec_L,  QAM,'gray')*NF;
-		data_bin_L 	= dec2bin(data_dec_L,q_bit);
+		dec_data	= randi  ([0,QAM-1],Tx*(1644*560-822*40),1);
+		data_mod	= qammod (dec_data,QAM,'gray')*NF;
+		data_bin 	= dec2bin(dec_data,q_bit);
 		data_mod	= zeros(1644,560,2);
 		index		= 1;
 		for symbol=1:560
 			if mod( (symbol - 3) , 14) == 0
-				data_range 		     = reshape(data_mod_L(index:index+ 822*Tx-1),1, 822,Tx );
+				data_range 		     = reshape(data_mod(index:index+ 822*Tx-1),1, 822,Tx );
 				data_mod(:,symbol,:) = reshape([ data_range  ; DMRS_DATA * ones(1,822,Tx)],1644,2);
 				index				 = index + 822*Tx;
 			else
-				data_mod(:,symbol,:) = reshape(data_mod_L(index:index+1644*Tx-1),1644,Tx );
+				data_mod(:,symbol,:) = reshape(data_mod(index:index+1644*Tx-1),1644,Tx );
 				index				 = index + 1644*Tx;
 			end
 		end
@@ -179,38 +172,28 @@ for a=1:length(SNR_in_dB)
         norm_Y(:,:,2)   = Y(:,:,2)          ./ Rx2_No;
         norm_H(:,:,1,:) = H_INTER(:,:,1,:)  ./ Rx1_No;
         norm_H(:,:,2,:) = H_INTER(:,:,2,:)  ./ Rx2_No;
-        X_hat_L = LMMSE(norm_Y,norm_H,Tx);
-        X_hat_L = X_hat_L/NF;
+        X_ZF = ZFDC(norm_Y,norm_H,Tx);
+        X_ZF = X_ZF/NF;
 		%反解資料
-		data_mod_L_hat 	= zeros(Tx*(1644*560-822*40),1);
+		data_mod_ZF 	= zeros(Tx*(1644*560-822*40),1);
 		index			= 1;
 		for symbol=1:560
 			if mod( (symbol - 3) , 14) == 0
-				data_mod_L_hat(index:index+ 822*Tx-1)	 = reshape(X_hat_L(1:2:1644,symbol,:), 822*Tx,1 );
+				data_mod_ZF(index:index+ 822*Tx-1)	 = reshape(X_ZF(1:2:1644,symbol,:), 822*Tx,1 );
 				index				 = index + 822*Tx;
 			else
-				data_mod_L_hat(index:index+1644*Tx-1)	 = reshape(X_hat_L(1:1:1644,symbol,:),1644*Tx,1 );
+				data_mod_ZF(index:index+1644*Tx-1)	 = reshape(X_ZF(1:1:1644,symbol,:),1644*Tx,1 );
 				index				 = index + 1644*Tx;
 			end
 		end
 		
 		%demod
-		data_dec_L_hat = qamdemod(data_mod_L_hat,  QAM,'gray');
-		data_bin_L_hat = dec2bin (data_dec_L_hat,q_bit);     	%0~3 to '00'~'11'
+		data_dec_ZF = qamdemod(data_mod_ZF,  QAM,'gray');
+		data_bin_ZF = dec2bin (data_dec_ZF,q_bit);     	%0~3 to '00'~'11'
 		%BER計算
-		BER 		 =  BER + sum(sum(data_bin_L_hat ~= data_bin_L ));
+		BER 		 =  BER + sum(sum(data_bin_ZF ~= data_bin));
 		parfor_progress;
 	end
 	parfor_progress(0);
-	BER_SNR(1,a) = 	BER/(1644 * 560 * frame_num * q_bit * Tx );
+	BER_SNR(1,a) = 	BER/(1644 * 560 * frame_num * q_bit * Tx);
 end
-
-%輸入SNR_in_dB和BER
-figure(1)
-semilogy(SNR_in_dB,BER_SNR(1,:),'k--','LineWidth',2)
-hold on
-grid on
-title('BER of 5G NR MIMO OFDM(CFO)')
-xlabel('SNR (dB)')
-ylabel('BER')
-legend('16QAM CFO')
