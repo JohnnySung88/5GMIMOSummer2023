@@ -185,9 +185,12 @@ parfor time=1:length(SNR_in_dB)
         %end
         %X_ZF = X_ZF/NF;
 
-        %LMMSE
-        X_ZF = LMMSE(norm_Y,norm_H,Tx);
+        X_ZF = ZFD(norm_Y,norm_H,Tx);
         X_ZF = X_ZF/NF;
+
+        %LMMSE
+        %X_ZF = LMMSE(norm_Y,norm_H,Tx);
+        %X_ZF = X_ZF/NF;
 
 		%反解資料
 		data_mod_ZF 	= zeros(Tx*(1644*560-822*40),1);
@@ -224,3 +227,4 @@ parfor time=1:length(SNR_in_dB)
 		Result(1,time) = mse(data_bin_ZF,y_LLR);
     end
 end
+Result
