@@ -171,7 +171,7 @@ parfor time=1:length(SNR_in_dB)
         norm_Y(:,:,2)   = Y(:,:,2)          ./ Rx2_No;
         norm_H(:,:,1,:) = H_INTER(:,:,1,:)  ./ Rx1_No;
         norm_H(:,:,2,:) = H_INTER(:,:,2,:)  ./ Rx2_No;
-        
+
         % ZF
         %X_ZF=zeros(1644,560,Tx);
         %for carrier=1:1644
@@ -221,6 +221,6 @@ parfor time=1:length(SNR_in_dB)
 		data_dec_ZF = qamdemod(data_mod_ZF,QAM,'gray');
 		data_bin_ZF = dec2bin (data_dec_ZF,q_bit);
 		data_bin_ZF  = data_bin_ZF-'0';
-		Result(1,time) = mse(data_bin_ZF,y_LLR)
+		Result(1,time) = mse(data_bin_ZF,y_LLR);
     end
 end
