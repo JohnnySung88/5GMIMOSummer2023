@@ -72,10 +72,10 @@ for time=1:length(SNR_in_dB)
 		%CDM
 		data_mod(2:4:1644,3:14:560,2:2:Tx) = -data_mod(2:4:1644,3:14:560,2:2:Tx);
 		%Guard Band
-		DC =   zeros(   1,560,Tx);
-		X  = [ zeros( 202,560,Tx) ;data_mod(1:822,:,:) ;DC ;data_mod(823:end,:,:) ;zeros(201,560,Tx) ];	
+		DC =   zeros(1,560,Tx);
+		X  = [ zeros(202,560,Tx) ;data_mod(1:822,:,:) ;DC ;data_mod(823:end,:,:) ;zeros(201,560,Tx) ];	
 		%IFFT
-		x  = ifft(ifftshift(X,1))*sqrt(2048);	%	2048 x 14*4*10						
+		x  = ifft(ifftshift(X,1))*sqrt(2048);	%2048 x 14*4*10						
 		%CP
 		x_CP = zeros(1,1228800,Tx);
 		index=1;
@@ -128,7 +128,8 @@ for time=1:length(SNR_in_dB)
 		%取得LMMSE估測結果
 		Y_DMRS 			 = Y(2:2:1644 , 3:14:560,:);
 		P0 				 = eye(822);
-		P1 				 = ones(822,1);P1(1:2:822) = -1;
+		P1 				 = ones(822,1);
+		P1(1:2:822) = -1;
 		P1 				 = diag(P1);
 		H_LMMSE			 = zeros(1644,40,2,2);
 		H_LMMSE(:,:,1,1) = R_H_HD* P0' * inv( P0*R_HD_HD*P0' + P1*R_HD_HD*P1' + (1/SNR_W)*eye(822) ) * (DMRS_DATA' .*Y_DMRS(:,:,1));
@@ -138,17 +139,17 @@ for time=1:length(SNR_in_dB)
 		%線性內差
 		DMRS_Spos	= 3:14:560;
 		H_INTER		= zeros(1644,560,2,2);	
-		for symbol  = 549:560  %邊界
+		for symbol  = 549:560  %中界
 			head_dist	= symbol - 549;
 			back_dist	= 563    - symbol;
 			H_INTER(:,symbol,:,:) = ( back_dist * H_LMMSE(:,40,:,:) + head_dist * H_LMMSE(:,1,:,:)  )  /14;
 		end
-		for symbol  = 1:2     %邊界
+		for symbol  = 1:2     %前界
 			head_dist	= 11 + symbol;
 			back_dist	= 3  - symbol;
 			H_INTER(:,symbol,:,:) = ( back_dist * H_LMMSE(:,40,:,:) + head_dist * H_LMMSE(:,1,:,:)  )  /14;
 		end
-		for symbol 	= 3:548  %連續
+		for symbol 	= 3:548  %後界
 			pos  		= floor((symbol-3)/14) + 1;
 			head_dist	= symbol 			- DMRS_Spos(pos);
 			back_dist	= DMRS_Spos(pos+1) 	- symbol;
@@ -187,13 +188,27 @@ for time=1:length(SNR_in_dB)
 			end
 		end
 		
+		%做LLR
+		y_in  = real(data_mod_ZF);	%LLR inphase
+		y_qu  = imag(data_mod_ZF);  %LLR quadrature
+		y_LLR = zeros(1,length(data_mod_ZF)*q_bit); %LLR output
+
+		y_LLR(:,1)= (1/2*No)*(min((y_in-1).^2,(y_in-3).^2)-min((y_in-(-1)).^2,(y_in-(-3)).^2))<0;
+		y_LLR(:,2)= (1/2*No)*(min((y_in-1).^2,(y_in-(-1)).^2)-min((y_in-3).^2,(y_in-(-3)).^2))<0;
+		y_LLR(:,3)= (1/2*No)*(min((y_qu-1).^2,(y_qu-3).^2)-min((y_qu-(-1)).^2,(y_qu-(-3)).^2))<0;
+		y_LLR(:,4)= (1/2*No)*(min((y_qu-1).^2,(y_qu-(-1)).^2)-min((y_qu-3).^2,(y_qu-(-3)).^2))<0;
+		%漂亮寫法
+        %y_LLR(:,1)=(1/(2*No))*(min((y_i-[1;3]).^2 )-min( (y_i-[-1;-3]).^2 ))<0;
+        %y_LLR(:,2)=(1/(2*No))*(min((y_i-[-1;1]).^2 )-min( (y_i-[-3;3]).^2 ))<0;
+        %y_LLR(:,3)=(1/(2*No))*(min((y_q-[-1;-3]).^2 )-min( (y_q-[1;3]).^2 ))<0;
+        %y_LLR(:,4)=(1/(2*No))*(min((y_q-[-1;1]).^2 )-min( (y_q-[-3;3]).^2 ))<0;
+		
 		%demod
-		data_dec_ZF = qamdemod(data_mod_ZF,  QAM,'gray');
-		data_bin_ZF = dec2bin (data_dec_ZF,q_bit);     	%0~3 to '00'~'11'
-		%BER計算
-		BER 		 =  BER + sum(sum(data_bin_ZF ~= data_bin));
+		data_dec_ZF = qamdemod(data_mod_ZF,QAM,'gray');
+		data_bin_ZF = dec2bin (data_dec_ZF,q_bit);
+		data_bin_ZF  = data_bin_ZF-'0';
+		Result(1,time) = mse(data_bin_ZF,y_LLR);
 		parfor_progress;
 	end
 	parfor_progress(0);
-	BER_SNR(1,a) = 	BER/(1644 * 560 * frame_num * q_bit * Tx);
 end
