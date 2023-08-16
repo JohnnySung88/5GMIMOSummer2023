@@ -3,7 +3,7 @@ clear
 clc
 
 %假設規範
-frame_num 	= 3;
+frame_num 	= 500;
 SNR_in_dB 	= 0:5:40;
 SNR_weight 	= 45;
 window 		= 10;
@@ -46,7 +46,7 @@ SNR_W 	= 10^( SNR_weight /10);
 %Result Subtract init 
 Result=zeros(1,length(SNR_in_dB));
 
-for time=1:length(SNR_in_dB)
+parfor time=1:length(SNR_in_dB)
 	SNR = 10^( SNR_in_dB(time)/10);
 	No  = 10^(-SNR_in_dB(time)/10);
 	BER = 0;
@@ -165,27 +165,29 @@ for time=1:length(SNR_in_dB)
 		end
 		Rx1_No = sum( abs( Y_DMRS(:,:,1)  - DMRS_hat_Y(:,:,1) ).^2 ,'all' )/(40*822);
 		Rx2_No = sum( abs( Y_DMRS(:,:,2)  - DMRS_hat_Y(:,:,2) ).^2 ,'all' )/(40*822);
-		%LMMSE
         norm_Y = zeros(1644,560,2);
 		norm_H = zeros(1644,560,2,2);
 		norm_Y(:,:,1)   = Y(:,:,1)          ./ Rx1_No;
         norm_Y(:,:,2)   = Y(:,:,2)          ./ Rx2_No;
         norm_H(:,:,1,:) = H_INTER(:,:,1,:)  ./ Rx1_No;
         norm_H(:,:,2,:) = H_INTER(:,:,2,:)  ./ Rx2_No;
+        
         % ZF
-        X_ZF=zeros(1644,560,Tx);
-        for carrier=1:1644
-            for slot =1:560
-                ZF_temp=zeros(Tx,1);
-                H_temp=squeeze(norm_H(carrier,slot,:,:));  %變成二維
-                Y_temp=squeeze(norm_Y(carrier,slot,:));    %變成一維
-                ZF_temp=ZF_temp+(inv(H_temp'*H_temp)*H_temp')*Y_temp;      %inv(H'H)H'y
-                X_ZF(carrier,slot,:)=ZF_temp;
-            end
-        end
-        X_ZF = X_ZF/NF;
-        %X_ZF = ZFDC(norm_Y,norm_H,Tx);
+        %X_ZF=zeros(1644,560,Tx);
+        %for carrier=1:1644
+            %for slot =1:560
+                %ZF_temp=zeros(Tx,1);
+                %H_temp=squeeze(norm_H(carrier,slot,:,:));  %變成二維
+                %Y_temp=squeeze(norm_Y(carrier,slot,:));    %變成一維
+                %ZF_temp=ZF_temp+(inv(H_temp'*H_temp)*H_temp')*Y_temp;      %inv(H'H)H'y
+                %X_ZF(carrier,slot,:)=ZF_temp;
+            %end
+        %end
         %X_ZF = X_ZF/NF;
+
+        %LMMSE
+        X_ZF = LMMSE(norm_Y,norm_H,Tx);
+        X_ZF = X_ZF/NF;
 
 		%反解資料
 		data_mod_ZF 	= zeros(Tx*(1644*560-822*40),1);
@@ -219,6 +221,6 @@ for time=1:length(SNR_in_dB)
 		data_dec_ZF = qamdemod(data_mod_ZF,QAM,'gray');
 		data_bin_ZF = dec2bin (data_dec_ZF,q_bit);
 		data_bin_ZF  = data_bin_ZF-'0';
-		Result(1,time) = mse(data_bin_ZF,y_LLR);
+		Result(1,time) = mse(data_bin_ZF,y_LLR)
     end
 end
