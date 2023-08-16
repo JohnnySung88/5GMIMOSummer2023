@@ -3,7 +3,7 @@ clear
 clc
 
 %假設規範
-frame_num 	= 20;
+frame_num 	= 3;
 SNR_in_dB 	= 0:5:40;
 SNR_weight 	= 45;
 window 		= 10;
@@ -50,9 +50,8 @@ for time=1:length(SNR_in_dB)
 	SNR = 10^( SNR_in_dB(time)/10);
 	No  = 10^(-SNR_in_dB(time)/10);
 	BER = 0;
-    parfor_progress(frame_num);
-	parfor frame=1:frame_num
-		fprintf("SNR : %d/%d \n\n",time,length(SNR_in_dB));	
+	for frame=1:frame_num
+		fprintf("SNR : %d/%d Frame : %d/%d\n\n",time,length(SNR_in_dB),frame,frame_num);	
 		%輸入資料(含DMRS)
 		dec_data	= randi  ([0,QAM-1],Tx*(1644*560-822*40),1);
 		data_mod	= qammod (dec_data,QAM,'gray')*NF;
@@ -173,8 +172,21 @@ for time=1:length(SNR_in_dB)
         norm_Y(:,:,2)   = Y(:,:,2)          ./ Rx2_No;
         norm_H(:,:,1,:) = H_INTER(:,:,1,:)  ./ Rx1_No;
         norm_H(:,:,2,:) = H_INTER(:,:,2,:)  ./ Rx2_No;
-        X_ZF = ZFDC(norm_Y,norm_H,Tx);
+        % ZF
+        X_ZF=zeros(1644,560,Tx);
+        for carrier=1:1644
+            for slot =1:560
+                ZF_temp=zeros(Tx,1);
+                H_temp=squeeze(norm_H(carrier,slot,:,:));  %變成二維
+                Y_temp=squeeze(norm_Y(carrier,slot,:));    %變成一維
+                ZF_temp=ZF_temp+(inv(H_temp'*H_temp)*H_temp')*Y_temp;      %inv(H'H)H'y
+                X_ZF(carrier,slot,:)=ZF_temp;
+            end
+        end
         X_ZF = X_ZF/NF;
+        %X_ZF = ZFDC(norm_Y,norm_H,Tx);
+        %X_ZF = X_ZF/NF;
+
 		%反解資料
 		data_mod_ZF 	= zeros(Tx*(1644*560-822*40),1);
 		index			= 1;
@@ -191,12 +203,12 @@ for time=1:length(SNR_in_dB)
 		%做LLR
 		y_in  = real(data_mod_ZF);	%LLR inphase
 		y_qu  = imag(data_mod_ZF);  %LLR quadrature
-		y_LLR = zeros(1,length(data_mod_ZF)*q_bit); %LLR output
+		y_LLR = zeros(length(data_mod_ZF),q_bit); %LLR output
 
-		y_LLR(:,1)= (1/2*No)*(min((y_in-1).^2,(y_in-3).^2)-min((y_in-(-1)).^2,(y_in-(-3)).^2))<0;
-		y_LLR(:,2)= (1/2*No)*(min((y_in-1).^2,(y_in-(-1)).^2)-min((y_in-3).^2,(y_in-(-3)).^2))<0;
-		y_LLR(:,3)= (1/2*No)*(min((y_qu-1).^2,(y_qu-3).^2)-min((y_qu-(-1)).^2,(y_qu-(-3)).^2))<0;
-		y_LLR(:,4)= (1/2*No)*(min((y_qu-1).^2,(y_qu-(-1)).^2)-min((y_qu-3).^2,(y_qu-(-3)).^2))<0;
+		y_LLR(:,1)= (1/(2*No))*(min((y_in-1).^2,(y_in-3).^2)-min((y_in-(-1)).^2,(y_in-(-3)).^2))<0;
+		y_LLR(:,2)= (1/(2*No))*(min((y_in-1).^2,(y_in-(-1)).^2)-min((y_in-3).^2,(y_in-(-3)).^2))<0;
+		y_LLR(:,3)= (1/(2*No))*(min((y_qu-(-1)).^2,(y_qu-(-3)).^2)-min((y_qu-1).^2,(y_qu-3).^2))<0;
+		y_LLR(:,4)= (1/(2*No))*(min((y_qu-1).^2,(y_qu-(-1)).^2)-min((y_qu-3).^2,(y_qu-(-3)).^2))<0;
 		%漂亮寫法
         %y_LLR(:,1)=(1/(2*No))*(min((y_i-[1;3]).^2 )-min( (y_i-[-1;-3]).^2 ))<0;
         %y_LLR(:,2)=(1/(2*No))*(min((y_i-[-1;1]).^2 )-min( (y_i-[-3;3]).^2 ))<0;
@@ -208,7 +220,5 @@ for time=1:length(SNR_in_dB)
 		data_bin_ZF = dec2bin (data_dec_ZF,q_bit);
 		data_bin_ZF  = data_bin_ZF-'0';
 		Result(1,time) = mse(data_bin_ZF,y_LLR);
-		parfor_progress;
-	end
-	parfor_progress(0);
+    end
 end
