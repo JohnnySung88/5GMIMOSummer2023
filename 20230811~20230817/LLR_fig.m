@@ -45,12 +45,15 @@ SNR_W 	= 10^( SNR_weight /10);
 
 %Result Subtract init 
 Result=zeros(1,length(SNR_in_dB));
+QAM_bin=zeros(frame_num,length(SNR_in_dB));
+LLR_bin=zeros(frame_num,length(SNR_in_dB));
 
-parfor time=1:length(SNR_in_dB)
+for time=1:length(SNR_in_dB)
 	SNR = 10^( SNR_in_dB(time)/10);
 	No  = 10^(-SNR_in_dB(time)/10);
-	BER = 0;
-    for frame=1:frame_num
+	BER1 = 0;
+    BER2 = 0;
+    parfor frame=1:frame_num
         fprintf("SNR : %d/%d Frame : %d/%d\n\n",time,length(SNR_in_dB),frame,frame_num);	
 		%輸入資料(含DMRS)
 		dec_data	= randi  ([0,QAM-1],Tx*(1644*560-822*40),1);
@@ -225,10 +228,26 @@ parfor time=1:length(SNR_in_dB)
         %y_LLR(:,3)=(1/(2*No))*(min((y_q-[-1;-3]).^2 )-min( (y_q-[1;3]).^2 ))<0;
         %y_LLR(:,4)=(1/(2*No))*(min((y_q-[-1;1]).^2 )-min( (y_q-[-3;3]).^2 ))<0;
 		
-		%demod
+		%demod binary_data
 		data_dec_ZF = qamdemod(data_mod_ZF,QAM,'gray');
 		data_bin_ZF = dec2bin (data_dec_ZF,q_bit);
 		data_bin_ZF  = data_bin_ZF-'0'; %ASCII code char轉double
-		Result(1,time) = mse(data_bin_ZF,y_LLR);
+		%Result(1,time) = mse(data_bin_ZF,y_LLR);
+        BER1 = BER1 + sum(sum((data_bin-'0') ~= data_bin_ZF),'all');
+        BER2 = BER2 + sum(sum((data_bin-'0') ~= y_LLR),'all');
     end
+    QAM_bin(1,time) =BER1/(1644*560*q_bit*frame_num*Tx);
+    LLR_bin(1,time) =BER2/(1644*560*q_bit*frame_num*Tx);
 end
+
+figure(1)
+semilogy(SNR_in_dB,QAM_bin(1,:),'b-','LineWidth',2)
+hold on
+semilogy(SNR_in_dB,LLR_bin(1,:),'r--','LineWidth',2)
+hold on
+grid on
+asis tight
+title('LLR vs QAMDEMOD')
+xlabel('SNR (dB)')
+ylabel('BER')
+legend('QAMDEMOD','LLR')
