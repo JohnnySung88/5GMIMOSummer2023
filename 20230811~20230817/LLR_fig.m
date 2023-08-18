@@ -246,7 +246,7 @@ hold on
 semilogy(SNR_in_dB,LLR_bin(1,:),'r--','LineWidth',2)
 hold on
 grid on
-asis tight
+axis tight
 title('LLR vs QAMDEMOD')
 xlabel('SNR (dB)')
 ylabel('BER')
