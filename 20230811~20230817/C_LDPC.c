@@ -10,7 +10,7 @@ double *imag;
 void LDPC(int xa,int xb,int ha,int hb,Complex X,Complex H,Complex output){
     Complex Eta,S,Lumda;
     
-    Eta.real=malloc(ha*hb*sizeof(double));   //·s¼W°ÊºA°O¾ÐÅé
+    Eta.real=malloc(ha*hb*sizeof(double));   //æ–°å¢žå‹•æ…‹è¨˜æ†¶é«”
 //     idx.real=malloc(8*sizeof(double));
     S.real=malloc(8*sizeof(double));
     Lumda.real=malloc(xb*sizeof(double));
@@ -28,15 +28,15 @@ void LDPC(int xa,int xb,int ha,int hb,Complex X,Complex H,Complex output){
     for(i=0;i<xb;i++)
     {Lumda.real[i]=X.real[i];}
     
-    for(i=0;i<ha*hb;i++) //Etaªì©l¤Æ
+    for(i=0;i<ha*hb;i++) //Etaåˆå§‹åŒ–
         Eta.real[i]=0;
-    for(i=0;i<8;i++) //idxªì©l¤Æ
+    for(i=0;i<8;i++) //idxåˆå§‹åŒ–
         idx[i]=0;
-    for(i=0;i<8;i++) //Sªì©l¤Æ
+    for(i=0;i<8;i++) //Såˆå§‹åŒ–
         S.real[i]=0;
     
     
-    for(i=0;i<iter;i++){ //Å|¥NSTART
+    for(i=0;i<iter;i++){ //ç–Šä»£START
         
         for(j=0;j<ha;j++){ //LDPC.par_bits 
             
@@ -82,7 +82,7 @@ void LDPC(int xa,int xb,int ha,int hb,Complex X,Complex H,Complex output){
 //     printf("%d\n",Ssgn);
 //     printf("%f\n",Qtemp);//<<<<<<<<<
 //     printf("%f\n",Qtempsgn);
-//     printf("%f\n",Eta.real[0]);//¦³°ÝÃD°Ú§A
+//     printf("%f\n",Eta.real[0]);//æœ‰å•é¡Œå•Šä½ 
 //     printf("%f\n",Eta.real[32]);
 //     printf("%f\n",Eta.real[75]);
 //     printf("%f\n",Eta.real[106]);
@@ -126,7 +126,7 @@ void LDPC(int xa,int xb,int ha,int hb,Complex X,Complex H,Complex output){
 //     printf("%f\n",Little_num);
 //     printf("%f\n",Spsi);
 //     printf("%d\n",idx_pl);
-    free(Eta.real);         //ÄÀ©ñ°O¾ÐÅé
+    free(Eta.real);         //é‡‹æ”¾è¨˜æ†¶é«”
     free(S.real);
     free(Lumda.real);
 
@@ -155,4 +155,3 @@ void mexFunction(int nlhs,mxArray *plhs[],int nrhs,const mxArray *prhs[]){
 //     Maxpos=mxGetPr(plhs[0]);
    LDPC(Xa,Xb,Ha,Hb,X,H,Output);    
 }
-    
