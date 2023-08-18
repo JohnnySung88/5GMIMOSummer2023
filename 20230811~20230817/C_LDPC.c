@@ -155,8 +155,4 @@ void mexFunction(int nlhs,mxArray *plhs[],int nrhs,const mxArray *prhs[]){
 //     Maxpos=mxGetPr(plhs[0]);
    LDPC(Xa,Xb,Ha,Hb,X,H,Output);    
 }
-
-    
-    
-    
     
