@@ -102,7 +102,7 @@ parfor time=1:length(SNR_in_dB)
 				pure_y(Rx_n,:) = pure_y(Rx_n,:) + conv( x_CP(1,:,Tx_n) , H_Channel(:,Rx_n,Tx_n) );
 			end
 		end
-        y = pure_y(:,1:end-5);	%刪除最後5筆資料
+        pure_y(:,1228801:end) = [];	%刪除最後5筆資料
 		%產生訊號
 		n 			= sqrt(No/2) *( randn(Tx,1228800) + randn(Tx,1228800)*1i );% randn產生noise variance=No
 		y			= pure_y + n;
