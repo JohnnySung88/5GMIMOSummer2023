@@ -49,31 +49,32 @@ Result=zeros(1,length(SNR_in_dB));
 parfor time=1:length(SNR_in_dB)
 	SNR = 10^( SNR_in_dB(time)/10);
 	No  = 10^(-SNR_in_dB(time)/10);
-	BER_LLR = 0;
-    BER_QAMDEMOD = 0;
-	for frame=1:frame_num
-		fprintf("SNR : %d/%d Frame : %d/%d\n\n",time,length(SNR_in_dB),frame,frame_num);	
+	BER = 0;
+    for frame=1:frame_num
+        fprintf("SNR : %d/%d Frame : %d/%d\n\n",time,length(SNR_in_dB),frame,frame_num);	
 		%輸入資料(含DMRS)
 		dec_data	= randi  ([0,QAM-1],Tx*(1644*560-822*40),1);
-		data_mod	= qammod (dec_data,QAM,'gray')*NF;
+		data_mod_L	= qammod (dec_data,QAM,'gray')*NF;
 		data_bin 	= dec2bin(dec_data,q_bit);
 		data_mod	= zeros(1644,560,2);
 		index		= 1;
 		for symbol=1:560
 			if mod( (symbol - 3) , 14) == 0
-				data_range 		     = reshape(data_mod(index:index+ 822*Tx-1),1, 822,Tx );
+				data_range 		     = reshape(data_mod_L(index:index+ 822*Tx-1),1, 822,Tx );
 				data_mod(:,symbol,:) = reshape([ data_range  ; DMRS_DATA * ones(1,822,Tx)],1644,2);
 				index				 = index + 822*Tx;
 			else
-				data_mod(:,symbol,:) = reshape(data_mod(index:index+1644*Tx-1),1644,Tx );
+				data_mod(:,symbol,:) = reshape(data_mod_L(index:index+1644*Tx-1),1644,Tx );
 				index				 = index + 1644*Tx;
 			end
 		end
 		%CDM
 		data_mod(2:4:1644,3:14:560,2:2:Tx) = -data_mod(2:4:1644,3:14:560,2:2:Tx);
 		%Guard Band
+		GBhead=zeros(202,560,Tx);
+        GBtail=zeros(201,560,Tx);
 		DC =   zeros(1,560,Tx);
-		X  = [ zeros(202,560,Tx) ;data_mod(1:822,:,:) ;DC ;data_mod(823:end,:,:) ;zeros(201,560,Tx) ];	
+		X =[GBhead;data_mod(1:822,:,:) ;DC ;data_mod(823:end,:,:) ;GBtail];
 		%IFFT
 		x  = ifft(ifftshift(X,1))*sqrt(2048);	%2048 x 14*4*10						
 		%CP
@@ -101,24 +102,24 @@ parfor time=1:length(SNR_in_dB)
 				pure_y(Rx_n,:) = pure_y(Rx_n,:) + conv( x_CP(1,:,Tx_n) , H_Channel(:,Rx_n,Tx_n) );
 			end
 		end
-		pure_y(:,1228801:end) = [];	%刪除最後5筆資料
+        pure_y(:,1228801:end) = [];	%刪除最後5筆資料
 		%產生訊號
 		n 			= sqrt(No/2) *( randn(Tx,1228800) + randn(Tx,1228800)*1i );% randn產生noise variance=No
 		y			= pure_y + n;
 		%移除CP
 		y_rmCP		= zeros(2048 , 560, Tx);
-		index  = 1;
+		index2  = 1;
 		for symbol = 1:560
 			if (mod(symbol,28)-1)
 				for ram = 1:Rx
-					y_rmCP(:,symbol,ram) = y(ram,index+144:index+144+2048-1);
+					y_rmCP(:,symbol,ram) = y(ram,index2+144:index2+144+2048-1);
 				end
-				index  = index+144+2048;
+				index2  = index2+144+2048;
 			else
 				for ram = 1:Rx
-					y_rmCP(:,symbol,ram) = y(ram,index+208:index+208+2048-1);
+					y_rmCP(:,symbol,ram) = y(ram,index2+208:index2+208+2048-1);
 				end
-				index  = index +208+2048;
+				index2  = index2 +208+2048;
 			end
 		end
 		%FFT----以下為頻域
@@ -138,23 +139,26 @@ parfor time=1:length(SNR_in_dB)
 		H_LMMSE(:,:,2,2) = R_H_HD* P1' * inv( P0*R_HD_HD*P0' + P1*R_HD_HD*P1' + (1/SNR_W)*eye(822) ) * (DMRS_DATA' .*Y_DMRS(:,:,2));
 		%線性內差
 		DMRS_Spos	= 3:14:560;
-		H_INTER		= zeros(1644,560,2,2);	
-		for symbol  = 549:560  %中界
-			head_dist	= symbol - 549;
-			back_dist	= 563    - symbol;
-			H_INTER(:,symbol,:,:) = ( back_dist * H_LMMSE(:,40,:,:) + head_dist * H_LMMSE(:,1,:,:)  )  /14;
-		end
-		for symbol  = 1:2     %前界
-			head_dist	= 11 + symbol;
-			back_dist	= 3  - symbol;
-			H_INTER(:,symbol,:,:) = ( back_dist * H_LMMSE(:,40,:,:) + head_dist * H_LMMSE(:,1,:,:)  )  /14;
-		end
-		for symbol 	= 3:548  %後界
-			pos  		= floor((symbol-3)/14) + 1;
-			head_dist	= symbol 			- DMRS_Spos(pos);
-			back_dist	= DMRS_Spos(pos+1) 	- symbol;
-			H_INTER(:,symbol,:,:) = ( back_dist * H_LMMSE(:,pos,:,:) + head_dist * H_LMMSE(:,pos+1,:,:)  )  /14;
-		end
+		H_INTER		= zeros(1644,560,2,2);
+        for symbol = 1:560
+            if symbol >= 1 && symbol <= 2 %前界
+                head_dist	= 11 + symbol;
+			    back_dist	= 3  - symbol;
+                H_INTER(:,symbol,:,:) = (head_dist * H_LMMSE(:,1,:,:))/14+(back_dist * H_LMMSE(:,40,:,:))/14;
+            end
+            if symbol >= 3 && symbol <= 548  %中界
+			    pos  		= floor((symbol-3)/14) + 1;
+			    head_dist	= symbol 			- DMRS_Spos(pos);
+			    back_dist	= DMRS_Spos(pos+1) 	- symbol;
+                H_INTER(:,symbol,:,:) = (head_dist * H_LMMSE(:,pos+1,:,:))/14+(back_dist * H_LMMSE(:,pos,:,:))/14;
+            end
+            if symbol >= 549 && symbol <= 560 %後界
+			    head_dist	= symbol - 549;
+			    back_dist	= 563    - symbol;
+                H_INTER(:,symbol,:,:) = (head_dist * H_LMMSE(:,1,:,:))/14+(back_dist * H_LMMSE(:,40,:,:))/14;
+            end
+        end
+     
 		%雜訊估測
 		DMRS  		= data_mod(2:2:1644 , 3:14:560,:);
 		DMRS_H		= H_LMMSE (2:2:1644,:,:,:);
@@ -224,26 +228,7 @@ parfor time=1:length(SNR_in_dB)
 		%demod
 		data_dec_ZF = qamdemod(data_mod_ZF,QAM,'gray');
 		data_bin_ZF = dec2bin (data_dec_ZF,q_bit);
-		data_bin_ZF  = data_bin_ZF-'0';
+		data_bin_ZF  = data_bin_ZF-'0'; %ASCII code char轉double
 		Result(1,time) = mse(data_bin_ZF,y_LLR);
-
-        BER_LLR = BER_LLR + sum(sum(data_bin-'0')~=data_bin_ZF,'all');
-        BER_QAMDEMOD = BER_QAMDEMOD + sum(sum(data_bin-'0')~=y_LLR,'all');
-
-        binary_LLR = zeros(frame_num,length(SNR_in_dB));
-        binary_LLR(1,count) = BER_LLR/(1644*560*q_bit*frame_num*Tx);
-        binary_QAMDEMOD = zeros(frame_num,length(SNR_in_dB));
-        binary_QAMDEMOD(1,count) = BER_QAMDEMOD/(1644*560*q_bit*frame_num*Tx);
     end
 end
-Result
-figure(1)
-semilogy(SNR_in_dB,data_bin_ZF(1,:),'r--','LineWidth',2)
-hold on
-semilogy(SNR_in_dB,y_LLR(1,:),'b--','LineWidth',2)
-hold on
-grid on
-title('LLR')
-xlabel('SNR (dB)')
-ylabel('BER')
-legend('Hard Decision','Soft Decision')
