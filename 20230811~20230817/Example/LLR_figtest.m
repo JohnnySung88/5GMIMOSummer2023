@@ -2,7 +2,7 @@ clear
 clc
 close all
 
-frame_num = 40;
+frame_num = 5;
 SNR_in_dB = 0:5:40;        % 自己設訂雜訊大小
 SNR_weight= 45;
 window= 10;
