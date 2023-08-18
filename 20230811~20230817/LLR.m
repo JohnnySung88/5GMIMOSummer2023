@@ -71,8 +71,10 @@ parfor time=1:length(SNR_in_dB)
 		%CDM
 		data_mod(2:4:1644,3:14:560,2:2:Tx) = -data_mod(2:4:1644,3:14:560,2:2:Tx);
 		%Guard Band
+		GBhead=zeros(202,560,Tx_num);
+        GBtail=zeros(201,560,Tx_num);
 		DC =   zeros(1,560,Tx);
-		X  = [ zeros(202,560,Tx) ;data_mod(1:822,:,:) ;DC ;data_mod(823:end,:,:) ;zeros(201,560,Tx) ];	
+		X =[GBhead;data_mod(1:822,:,:) ;DC ;data_mod(823:end,:,:) ;GBtail];
 		%IFFT
 		x  = ifft(ifftshift(X,1))*sqrt(2048);	%2048 x 14*4*10						
 		%CP
@@ -106,18 +108,18 @@ parfor time=1:length(SNR_in_dB)
 		y			= pure_y + n;
 		%移除CP
 		y_rmCP		= zeros(2048 , 560, Tx);
-		index  = 1;
+		index2  = 1;
 		for symbol = 1:560
 			if (mod(symbol,28)-1)
 				for ram = 1:Rx
-					y_rmCP(:,symbol,ram) = y(ram,index+144:index+144+2048-1);
+					y_rmCP(:,symbol,ram) = y(ram,index2+144:index2+144+2048-1);
 				end
-				index  = index+144+2048;
+				index2  = index2+144+2048;
 			else
 				for ram = 1:Rx
-					y_rmCP(:,symbol,ram) = y(ram,index+208:index+208+2048-1);
+					y_rmCP(:,symbol,ram) = y(ram,index2+208:index2+208+2048-1);
 				end
-				index  = index +208+2048;
+				index2  = index2 +208+2048;
 			end
 		end
 		%FFT----以下為頻域
