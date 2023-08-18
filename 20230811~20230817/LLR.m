@@ -71,8 +71,8 @@ parfor time=1:length(SNR_in_dB)
 		%CDM
 		data_mod(2:4:1644,3:14:560,2:2:Tx) = -data_mod(2:4:1644,3:14:560,2:2:Tx);
 		%Guard Band
-		GBhead=zeros(202,560,Tx_num);
-        GBtail=zeros(201,560,Tx_num);
+		GBhead=zeros(202,560,Tx);
+        GBtail=zeros(201,560,Tx);
 		DC =   zeros(1,560,Tx);
 		X =[GBhead;data_mod(1:822,:,:) ;DC ;data_mod(823:end,:,:) ;GBtail];
 		%IFFT
