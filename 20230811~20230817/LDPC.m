@@ -69,34 +69,44 @@ LDPC_bin=zeros(frame_num,length(SNR_in_dB)); %binary_OMS
 for time=1:length(SNR_in_dB)
 	SNR = 10^( SNR_in_dB(time)/10);
 	No  = 10^(-SNR_in_dB(time)/10);
-	BER1 = 0;
-    BER2 = 0;
-	BER3 = 0;
+    LLR_BER = 0;
+	LDPC_BER = 0;
     parfor frame=1:frame_num
         fprintf("SNR : %d/%d Frame : %d/%d\n\n",time,length(SNR_in_dB),frame,frame_num);	
 		%輸入資料(含DMRS)
-		dec_data	= randi  ([0,QAM-1],Tx*(1644*560-822*40),1);
-		data_mod_L	= qammod (dec_data,QAM,'gray')*NF;
-		data_bin 	= dec2bin(dec_data,q_bit);
-		data_mod	= zeros(1644,560,2);
+		dec_data	= randi  ([0,QAM-1],Tx*(1644*560-822*40)*code_rate,1); %只能傳送CODERATE的資訊量
+		%data_mod_L	= qammod (dec_data,QAM,'gray')*NF;
+		dou_data    = dec2bin(dec_data,q_bit)-'0'; %轉double
+		dou2_data   = reshape(dou_data.',Tx_num*(1644*560-822*40)*code_rate*q_bit,1);
+		Matrix_data = reshape(dou2_data,648,5480);
+		%data_bin 	= dec2bin(dec_data,q_bit);
+		%data_mod	= zeros(1644,560,2);
+        
+		LDPC_bin_Matrix= mod(Matrix_data.'* double(LDPC.G.x),2) ;
+        LDPC_dec=reshape([8 4 2 1]*reshape(LDPC_bin_Matrix.',4,[]),[],1);   %二進位轉十進位
+        LDPC_mod= qammod(LDPC_dec,QAM)*NF;
+        LDPC_mod_data=zeros(1644,560,2);
 		index		= 1;
 		for symbol=1:560
 			if mod( (symbol - 3) , 14) == 0
-				data_range 		     = reshape(data_mod_L(index:index+ 822*Tx-1),1, 822,Tx );
-				data_mod(:,symbol,:) = reshape([ data_range  ; DMRS_DATA * ones(1,822,Tx)],1644,2);
+				data_range 		     = reshape(LDPC_mod(index:index+ 822*Tx-1),1, 822,Tx );
+				LDPC_mod_data(:,symbol,:) = reshape([ data_range  ; DMRS_DATA * ones(1,822,Tx)],1644,2);
 				index				 = index + 822*Tx;
 			else
-				data_mod(:,symbol,:) = reshape(data_mod_L(index:index+1644*Tx-1),1644,Tx );
+				LDPC_mod_data(:,symbol,:) = reshape(LDPC_mod(index:index+1644*Tx-1),1644,Tx );
 				index				 = index + 1644*Tx;
 			end
 		end
+		
 		%CDM
-		data_mod(2:4:1644,3:14:560,2:2:Tx) = -data_mod(2:4:1644,3:14:560,2:2:Tx);
+		LDPC_mod_data(2:4:1644,3:14:560,2) = -LDPC_mod_data(2:4:1644,3:14:560,2);
+		%data_mod(2:4:1644,3:14:560,2:2:Tx) = -data_mod(2:4:1644,3:14:560,2:2:Tx);
+
 		%Guard Band
 		GBhead=zeros(202,560,Tx);
         GBtail=zeros(201,560,Tx);
 		DC =   zeros(1,560,Tx);
-		X =[GBhead;data_mod(1:822,:,:) ;DC ;data_mod(823:end,:,:) ;GBtail];
+		X =[GBhead;LDPC_mod_data(1:822,:,:) ;DC ;LDPC_mod_data(823:end,:,:) ;GBtail];
 		%IFFT
 		x  = ifft(ifftshift(X,1))*sqrt(2048);	%2048 x 14*4*10						
 		%CP
@@ -148,6 +158,11 @@ for time=1:length(SNR_in_dB)
 		Y_fft 	= fftshift( fft( y_rmCP/sqrt(2048) ) ,1);
 		%rm Guard Band
 		Y	  	= [ Y_fft( 203:1024,:,:) ; Y_fft( 1026:1847,:,:) ];
+
+		h = [H_Channel ; zeros(2042,2,2)];
+        H = fftshift(fft(h,[],1),1);
+        H_Data 	= [H(203:1024,:,:);H(1026:1847,:,:)];
+        H_frame = permute(repmat( H_Data(:,:,:),1,1,1,560),[1 4 2 3]  );
 		%取得LMMSE估測結果
 		Y_DMRS 			 = Y(2:2:1644 , 3:14:560,:);
 		P0 				 = eye(822);
@@ -182,7 +197,7 @@ for time=1:length(SNR_in_dB)
         end
      
 		%雜訊估測
-		DMRS  		= data_mod(2:2:1644 , 3:14:560,:);
+		DMRS  		= LDPC_mod_data(2:2:1644 , 3:14:560,:);
 		DMRS_H		= H_LMMSE (2:2:1644,:,:,:);
 		DMRS_hat_Y  = zeros(822,40,2);
 		for SC = 1:822
@@ -235,38 +250,40 @@ for time=1:length(SNR_in_dB)
 		%做LLR
 		y_in  = real(data_mod_ZF);	%LLR inphase
 		y_qu  = imag(data_mod_ZF);  %LLR quadrature
-		y_LLR = zeros(length(data_mod_ZF),q_bit); %LLR output
+		%y_LLR = zeros(length(data_mod_ZF),q_bit); %LLR output
+		y_LLR = zeros(q_bit*length(data_mod_ZF),1);
 
-		y_LLR(:,1)= (1/(2*No))*(min((y_in-1).^2,(y_in-3).^2)-min((y_in-(-1)).^2,(y_in-(-3)).^2))<0;
-		y_LLR(:,2)= (1/(2*No))*(min((y_in-1).^2,(y_in-(-1)).^2)-min((y_in-3).^2,(y_in-(-3)).^2))<0;
-		y_LLR(:,3)= (1/(2*No))*(min((y_qu-(-1)).^2,(y_qu-(-3)).^2)-min((y_qu-1).^2,(y_qu-3).^2))<0;
-		y_LLR(:,4)= (1/(2*No))*(min((y_qu-1).^2,(y_qu-(-1)).^2)-min((y_qu-3).^2,(y_qu-(-3)).^2))<0;
-		%漂亮寫法
-        %y_LLR(:,1)=(1/(2*No))*(min((y_i-[1;3]).^2 )-min( (y_i-[-1;-3]).^2 ))<0;
-        %y_LLR(:,2)=(1/(2*No))*(min((y_i-[-1;1]).^2 )-min( (y_i-[-3;3]).^2 ))<0;
-        %y_LLR(:,3)=(1/(2*No))*(min((y_q-[-1;-3]).^2 )-min( (y_q-[1;3]).^2 ))<0;
-        %y_LLR(:,4)=(1/(2*No))*(min((y_q-[-1;1]).^2 )-min( (y_q-[-3;3]).^2 ))<0;
+		y_LLR(1:4:length(y_LLR))=(1/(2*No)) * (min ( (y_i-  1) .^2 , ( y_i-  3) .^2 ) -min  ( (y_i-(-1)).^2 , ( y_i-(-3)).^ 2));
+        y_LLR(2:4:length(y_LLR))=(1/(2*No)) * (min ( (y_i-(-1)).^2 , ( y_i-  1) .^2 ) -min  ( (y_i-(-3)).^2 , ( y_i-  3 ).^ 2));
+        y_LLR(3:4:length(y_LLR))=(1/(2*No)) * (min ( (y_q-(-1)).^2 , ( y_q-(-3)).^2 ) -min  ( (y_q-  1) .^2 , ( y_q-  3 ).^ 2));
+        y_LLR(4:4:length(y_LLR))=(1/(2*No)) * (min ( (y_q-(-1)).^2 , ( y_q-  1) .^2 ) -min  ( (y_q-(-3)).^2 , ( y_q-  3 ).^ 2));
+
+		y_LLR= reshape(y_LLR,1296,5480);
+        LLR_OMS= LDPC_OMS(y_LLR,H_row_master,H_row_master_size);
+        data_bin_LLR= reshape(y_LLR (1:648,:),[],1)<0;
+        data_bin_OMS= reshape(LLR_OMS(1:648,:),[],1)<0;
 		
 		%demod binary_data
-		data_dec_ZF = qamdemod(data_mod_ZF,QAM,'gray');
-		data_bin_ZF = dec2bin (data_dec_ZF,q_bit);
-		data_bin_ZF  = data_bin_ZF-'0'; %ASCII code char轉double
+		%data_dec_ZF = qamdemod(data_mod_ZF,QAM,'gray');
+		%data_bin_ZF = dec2bin (data_dec_ZF,q_bit);
+		%data_bin_ZF  = data_bin_ZF-'0'; %ASCII code char轉double
 		%Result(1,time) = mse(data_bin_ZF,y_LLR);
-        BER1 = BER1 + sum(sum((data_bin-'0') ~= data_bin_ZF),'all');
-        BER2 = BER2 + sum(sum((data_bin-'0') ~= y_LLR),'all');
+		LLR_BER=LLR_BER+sum(sum(dou2_data~= data_bin_LLR),'all');
+        LDPC_BER=LDPC_BER+sum(sum(dou2_data~= data_bin_OMS),'all');
+        %LLR_BER = LLR_BER + sum(sum((data_bin-'0') ~= y_LLR),'all');
     end
-    QAM_bin(1,time) =BER1/(1644*560*q_bit*frame_num*Tx);
-    LLR_bin(1,time) =BER2/(1644*560*q_bit*frame_num*Tx);
+	LLR_bin(1,time) =LLR_BER/(1644*560*q_bit*frame_num*Tx);
+	LDPC_bin(1,time)=LDPC_BER/(1644*560*q_bit*frame_num*Tx);
 end
 
 figure(1)
-semilogy(SNR_in_dB,QAM_bin(1,:),'b-','LineWidth',2)
+semilogy(SNR_in_dB,LLR_bin(1,:),'b-','LineWidth',2)
 hold on
-semilogy(SNR_in_dB,LLR_bin(1,:),'r--','LineWidth',2)
+semilogy(SNR_in_dB,LDPC_bin(1,:),'r--','LineWidth',2)
 hold on
 grid on
 axis tight
-title('LLR vs QAMDEMOD')
+title('LLR vs LDPC')
 xlabel('SNR (dB)')
 ylabel('BER')
-legend('QAMDEMOD','LLR')
+legend('LLR','LDPC(OMS)')
