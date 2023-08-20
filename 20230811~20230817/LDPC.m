@@ -77,7 +77,7 @@ for time=1:length(SNR_in_dB)
 		dec_data	= randi  ([0,QAM-1],Tx*(1644*560-822*40)*code_rate,1); %只能傳送CODERATE的資訊量
 		%data_mod_L	= qammod (dec_data,QAM,'gray')*NF;
 		dou_data    = dec2bin(dec_data,q_bit)-'0'; %轉double
-		dou2_data   = reshape(dou_data.',Tx_num*(1644*560-822*40)*code_rate*q_bit,1);
+		dou2_data   = reshape(dou_data.',Tx*(1644*560-822*40)*code_rate*q_bit,1);
 		Matrix_data = reshape(dou2_data,648,5480);
 		%data_bin 	= dec2bin(dec_data,q_bit);
 		%data_mod	= zeros(1644,560,2);
@@ -253,10 +253,10 @@ for time=1:length(SNR_in_dB)
 		%y_LLR = zeros(length(data_mod_ZF),q_bit); %LLR output
 		y_LLR = zeros(q_bit*length(data_mod_ZF),1);
 
-		y_LLR(1:4:length(y_LLR))=(1/(2*No)) * (min ( (y_i-  1) .^2 , ( y_i-  3) .^2 ) -min  ( (y_i-(-1)).^2 , ( y_i-(-3)).^ 2));
-        y_LLR(2:4:length(y_LLR))=(1/(2*No)) * (min ( (y_i-(-1)).^2 , ( y_i-  1) .^2 ) -min  ( (y_i-(-3)).^2 , ( y_i-  3 ).^ 2));
-        y_LLR(3:4:length(y_LLR))=(1/(2*No)) * (min ( (y_q-(-1)).^2 , ( y_q-(-3)).^2 ) -min  ( (y_q-  1) .^2 , ( y_q-  3 ).^ 2));
-        y_LLR(4:4:length(y_LLR))=(1/(2*No)) * (min ( (y_q-(-1)).^2 , ( y_q-  1) .^2 ) -min  ( (y_q-(-3)).^2 , ( y_q-  3 ).^ 2));
+		y_LLR(1:4:length(y_LLR))=(1/(2*No)) * (min ( (y_in-  1) .^2 , ( y_in-  3) .^2 ) -min  ( (y_in-(-1)).^2 , ( y_in-(-3)).^ 2));
+        y_LLR(2:4:length(y_LLR))=(1/(2*No)) * (min ( (y_in-(-1)).^2 , ( y_in-  1) .^2 ) -min  ( (y_in-(-3)).^2 , ( y_in-  3 ).^ 2));
+        y_LLR(3:4:length(y_LLR))=(1/(2*No)) * (min ( (y_qu-(-1)).^2 , ( y_qu-(-3)).^2 ) -min  ( (y_qu-  1) .^2 , ( y_qu-  3 ).^ 2));
+        y_LLR(4:4:length(y_LLR))=(1/(2*No)) * (min ( (y_qu-(-1)).^2 , ( y_qu-  1) .^2 ) -min  ( (y_qu-(-3)).^2 , ( y_qu-  3 ).^ 2));
 
 		y_LLR= reshape(y_LLR,1296,5480);
         LLR_OMS= LDPC_OMS(y_LLR,H_row_master,H_row_master_size);
