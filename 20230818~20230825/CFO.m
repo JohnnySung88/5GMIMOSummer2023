@@ -1,4 +1,4 @@
-function [hat_delta_f,t] = CFO_EST(frame_data,y,Fs,CFO_ignore)
+function [hat_delta_f,t] = CFO(frame_data,y,Fs,CFO_ignore)
 	index  			= 1;
 	CFO_sum	 		= 0;
 	CP_num			= 0;
