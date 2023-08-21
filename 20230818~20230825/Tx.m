@@ -17,7 +17,7 @@ figure_bin_RE	 = [figure_bin;zeros(648-mod(figure_row*figure_col*3,648),8)];
 figure_bin_RE	 = reshape(figure_bin_RE,[],648);
 
 encode 		 = mod(figure_bin_RE * double(LDPC.G.x),2);
-
+q_bit        = 4;
 LDPC_num	 = size(encode,1);
 LDPC_bin 	= reshape(encode,q_bit ,[]);%資料順序不論(準備進調變)
 LDPC_dec_L	= sum(LDPC_bin.'.*binTable,2);%bin2dec
