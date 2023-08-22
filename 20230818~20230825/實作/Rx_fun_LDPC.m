@@ -1,4 +1,4 @@
-function [Time,Biterror,Capacity_sum,Rx1_SNR,Rx2_SNR,Lena_RGB] = Rx_fun_LDPC(frame_data,Rx_signal,DTinfo,CFO_ignore,iteration)
+function [Time,Biterror,Capacity_sum,Rx1_SNR,Rx2_SNR,JPG_RGB] = Rx_fun_LDPC(frame_data,Rx_signal,DTinfo,CFO_ignore,iteration)
 	Fs 	= frame_data.Fs;
 	Tx	= frame_data.Tx;
 	Rx  = frame_data.Rx;
@@ -81,24 +81,24 @@ function [Time,Biterror,Capacity_sum,Rx1_SNR,Rx2_SNR,Lena_RGB] = Rx_fun_LDPC(fra
 	LLR_part			 = permute(LLR_part,[2,1]);
 	
 	LLR_MSA			  	 = LDPC_MSA(LLR_part,iteration,frame_data.H_row_master,frame_data.H_row_master_size,5464,0.5);
-	Lena_bin_hat 		 = reshape(LLR_MSA(1:648,:).'<0,[],8);
+	JPG_bin_hat 		 = reshape(LLR_MSA(1:648,:).'<0,[],8);
 	%Time
 	Time = toc;
 	%LDPC decode(image)
 	bin_table	= 2 .^ (7:-1:0);
-	Lena_row = frame_data.Lena_row;
-	Lena_col = frame_data.Lena_col;
-	Lena_size= frame_data.Lena_size;
-	Lena_bin_hat = Lena_bin_hat(1:Lena_size,:);
-	Lena_dec_hat = sum(Lena_bin_hat.*bin_table,2);%bin2dec
-	Lena_Csize	 = Lena_row*Lena_col;
-	Lena_RGB	 = zeros(Lena_row,Lena_col,3);
-	Lena_RGB(:,:,1) = reshape( Lena_dec_hat(             1:Lena_Csize  ) ,Lena_row,Lena_col);
-	Lena_RGB(:,:,2) = reshape( Lena_dec_hat(Lena_Csize  +1:Lena_Csize*2) ,Lena_row,Lena_col);
-	Lena_RGB(:,:,3) = reshape( Lena_dec_hat(Lena_Csize*2+1:Lena_Csize*3) ,Lena_row,Lena_col);
-	Lena_RGB		= uint8(Lena_RGB);
+	JPG_row = frame_data.JPG_row;
+	JPG_col = frame_data.JPG_col;
+	JPG_size= frame_data.JPG_size;
+	JPG_bin_hat = JPG_bin_hat(1:JPG_size,:);
+	JPG_dec_hat = sum(JPG_bin_hat.*bin_table,2);%bin2dec
+	JPG_Csize	 = JPG_row*JPG_col;
+	JPG_RGB	 = zeros(JPG_row,JPG_col,3);
+	JPG_RGB(:,:,1) = reshape( JPG_dec_hat(             1:JPG_Csize  ) ,JPG_row,JPG_col);
+	JPG_RGB(:,:,2) = reshape( JPG_dec_hat(JPG_Csize  +1:JPG_Csize*2) ,JPG_row,JPG_col);
+	JPG_RGB(:,:,3) = reshape( JPG_dec_hat(JPG_Csize*2+1:JPG_Csize*3) ,JPG_row,JPG_col);
+	JPG_RGB		= uint8(JPG_RGB);
 	%BER
-	Biterror = sum(Lena_bin_hat ~= frame_data.Lena_bin,'all');
+	Biterror = sum(JPG_bin_hat ~= frame_data.JPG_bin,'all');
 	%SNR
 	Rx1_SNR  = -10*log10(Rx_No(1) );
 	Rx2_SNR  = -10*log10(Rx_No(2) );
