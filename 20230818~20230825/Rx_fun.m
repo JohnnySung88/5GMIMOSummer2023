@@ -1,4 +1,4 @@
-function [Time,Biterror,Capacity_sum,Rx1_SNR,Rx2_SNR,Pict_RGB] = Rx_fun(frame_data,Rx_signal,DTinfo,CFO_ignore)
+function [Time,Biterror,Capacity_sum,Rx1_SNR,Rx2_SNR,Lena_RGB] = Rx_fun(frame_data,Rx_signal,DTinfo,CFO_ingore)
 	Fs 	= frame_data.Fs;
 	Tx	= frame_data.Tx;
 	Rx  = frame_data.Rx;
@@ -15,7 +15,7 @@ function [Time,Biterror,Capacity_sum,Rx1_SNR,Rx2_SNR,Pict_RGB] = Rx_fun(frame_da
 
 	
 	%CFO估測(需多重路徑猜測) 背景運算
-	f(1) = parfeval(backgroundPool,@CFO,2,frame_data,y,Fs,CFO_ignore);
+	f(1) = parfeval(backgroundPool,@CFO,2,frame_data,y,Fs,CFO_ingore);
 	%移除CP 0.072sec
 	y_rmCP(:,:,1) = reshape(y(1,frame_data.CPdataPos),2048,560);
 	y_rmCP(:,:,2) = reshape(y(2,frame_data.CPdataPos),2048,560);
@@ -71,24 +71,24 @@ function [Time,Biterror,Capacity_sum,Rx1_SNR,Rx2_SNR,Pict_RGB] = Rx_fun(frame_da
 	LDPC_dec_L_hat = qamdemod(LDPC_mod_L_hat,frame_data.QAM  ,'gray');		
 	LDPC_bin_L_hat = reshape(dec2bin (LDPC_dec_L_hat,frame_data.q_bit).' - '0',[],1) ;
 	LDPC_bin_part  = permute(reshape(LDPC_bin_L_hat,[],1296) ,[2,1]);
-	Pict_bin_hat   = reshape(LDPC_bin_part(1:648,:).',[],8);
+	Lena_bin_hat   = reshape(LDPC_bin_part(1:648,:).',[],8);
 	%Time
 	Time = toc;
 	%noLDPC decode(image)
 	bin_table	= 2 .^ (7:-1:0);
-	Pict_row = frame_data.Pict_row;
-	Pict_col = frame_data.Pict_col;
-	Pict_size= frame_data.Pict_size;
-	Pict_bin_hat = Pict_bin_hat(1:Pict_size,:);
-	Pict_dec_hat = sum(Pict_bin_hat.*bin_table,2);%bin2dec
-	Pict_Csize	 = Pict_row*Pict_col;
-	Pict_RGB	 = zeros(Pict_row,Pict_col,3);
-	Pict_RGB(:,:,1) = reshape( Pict_dec_hat(             1:Pict_Csize  ) ,Pict_row,Pict_col);
-	Pict_RGB(:,:,2) = reshape( Pict_dec_hat(Pict_Csize  +1:Pict_Csize*2) ,Pict_row,Pict_col);
-	Pict_RGB(:,:,3) = reshape( Pict_dec_hat(Pict_Csize*2+1:Pict_Csize*3) ,Pict_row,Pict_col);
-	Pict_RGB		= uint8(Pict_RGB);
+	Lena_row = frame_data.Lena_row;
+	Lena_col = frame_data.Lena_col;
+	Lena_size= frame_data.Lena_size;
+	Lena_bin_hat = Lena_bin_hat(1:Lena_size,:);
+	Lena_dec_hat = sum(Lena_bin_hat.*bin_table,2);%bin2dec
+	Lena_Csize	 = Lena_row*Lena_col;
+	Lena_RGB	 = zeros(Lena_row,Lena_col,3);
+	Lena_RGB(:,:,1) = reshape( Lena_dec_hat(             1:Lena_Csize  ) ,Lena_row,Lena_col);
+	Lena_RGB(:,:,2) = reshape( Lena_dec_hat(Lena_Csize  +1:Lena_Csize*2) ,Lena_row,Lena_col);
+	Lena_RGB(:,:,3) = reshape( Lena_dec_hat(Lena_Csize*2+1:Lena_Csize*3) ,Lena_row,Lena_col);
+	Lena_RGB		= uint8(Lena_RGB);
 	%BER
-	Biterror = sum(Pict_bin_hat ~= frame_data.Pict_bin,'all');
+	Biterror = sum(Lena_bin_hat ~= frame_data.Lena_bin,'all');
 	%SNR
 	Rx1_SNR  = -10*log10(Rx_No(1) );
 	Rx2_SNR  = -10*log10(Rx_No(2) );
