@@ -6,6 +6,7 @@ Pict_col	 = size(Pict_origin,2);
 Pict_bin	 = [dec2bin(Pict_origin(:,:,1));
 				dec2bin(Pict_origin(:,:,2));
 				dec2bin(Pict_origin(:,:,3))];
+JPG_bin      = Pict_bin-'0';
 Pict_size	 = size(Pict_bin,1);
 Pict_bin_RE	 = [Pict_bin;zeros(648-mod(Pict_row*Pict_col*3,648),8)];
 Pict_bin_RE	 = reshape(Pict_bin_RE,[],648);
