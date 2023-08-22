@@ -1,4 +1,4 @@
-function [Time,Biterror,Capacity_sum,Rx1_SNR,Rx2_SNR,Lena_RGB] = Rx_fun_LDPC(frame_data,Rx_signal,DTinfo,CFO_ingore,iteration)
+function [Time,Biterror,Capacity_sum,Rx1_SNR,Rx2_SNR,Lena_RGB] = Rx_fun_LDPC(frame_data,Rx_signal,DTinfo,CFO_ignore,iteration)
 	Fs 	= frame_data.Fs;
 	Tx	= frame_data.Tx;
 	Rx  = frame_data.Rx;
@@ -13,7 +13,7 @@ function [Time,Biterror,Capacity_sum,Rx1_SNR,Rx2_SNR,Lena_RGB] = Rx_fun_LDPC(fra
 	%同步
 	y = Sync(frame_data,y);
 	%CFO估測(需多重路徑猜測) 背景運算
-	f(1) = parfeval(backgroundPool,@CFO,2,frame_data,y,Fs,CFO_ingore);
+	f(1) = parfeval(backgroundPool,@CFO,2,frame_data,y,Fs,CFO_ignore);
 	%移除CP 0.072sec
 	y_rmCP(:,:,1) = reshape(y(1,frame_data.CPdataPos),2048,560);
 	y_rmCP(:,:,2) = reshape(y(2,frame_data.CPdataPos),2048,560);
