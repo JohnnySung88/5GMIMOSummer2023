@@ -105,7 +105,8 @@ function [Time,Biterror,Capacity_sum,Rx1_SNR,Rx2_SNR,JPG_RGB] = Rx_fun_LDPC(fram
 	%Capacity
 	SNR = 1/No;
 	Capacity_sum = 0;
-	parfor SC = 1:1644
+	%parfor SC = 1:1644
+    for SC = 1:1644
 		for slot = 1:560
 			unit_H 	 = reshape(H_INTER(SC,slot,:,:),Rx,Tx);
 			Capacity_sum = Capacity_sum + abs( log2( det( eye(Tx) + (1/Tx) .* SNR .* (unit_H*unit_H'))));
