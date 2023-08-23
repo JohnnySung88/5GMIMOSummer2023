@@ -114,8 +114,8 @@ function [Time,Biterror,Capacity_sum,Rx1_SNR,Rx2_SNR,JPG_RGB] = Rx_fun(frame_dat
 	%BER
 	Biterror = sum(JPG_bin_hat ~= frame_data.JPG_bin,'all');
 	%SNR
-	Rx1_SNR  = -10*log10(Rx_No(1) );
-	Rx2_SNR  = -10*log10(Rx_No(2) );
+	Rx1_SNR  = -10*log10(Rx_No(1) / mean(abs(Y(:,:,1).^2),'all'));
+	Rx2_SNR  = -10*log10(Rx_No(2) / mean(abs(Y(:,:,2).^2),'all'));
 	%Capacity
 	No = (Rx_No(1)+Rx_No(2))/2;
 	SNR = 1/No;
@@ -233,8 +233,8 @@ function [Time,Biterror,Capacity_sum,Rx1_SNR,Rx2_SNR,JPG_RGB] = Rx_fun_LDPC(fram
 	%BER
 	Biterror = sum(JPG_bin_hat ~= frame_data.JPG_bin,'all');
 	%SNR
-	Rx1_SNR  = -10*log10(Rx_No(1) );
-	Rx2_SNR  = -10*log10(Rx_No(2) );
+	Rx1_SNR  = -10*log10(Rx_No(1) / mean(abs(Y(:,:,1).^2),'all'));
+	Rx2_SNR  = -10*log10(Rx_No(2) / mean(abs(Y(:,:,2).^2),'all'));
 	%Capacity
 	SNR = 1/No;
 	Capacity_sum = 0;
