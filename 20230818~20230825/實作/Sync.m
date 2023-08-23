@@ -1,6 +1,6 @@
 function [y_out] = Sync(frame_data,y)
-    [corr_1,corr_pos_1] = xcorr(y(1,1:1228800/5),frame_data.PSS_t);
-    [corr_2,corr_pos_2] = xcorr(y(2,1:1228800/5),frame_data.PSS_t);
+    [corr_1,corr_pos_1] = xcorr(y(1,1:floor(length(y(1,:))/2)),frame_data.PSS_t);
+    [corr_2,corr_pos_2] = xcorr(y(2,1:floor(length(y(2,:))/2)),frame_data.PSS_t);
     
     [~,max_pos_1]=max(abs(corr_1));
     [~,max_pos_2]=max(abs(corr_2));
