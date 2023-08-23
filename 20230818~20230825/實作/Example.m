@@ -1,8 +1,8 @@
 %Sync
 %{
 function [y_out] = Sync(frame_data,y)
-    thread1 =parfeval(backgroundPool,@xcorr,2,y(1,1:floor(length(y(1,:))/2)),frame_data.PSS_t;
-	thread2 =parfeval(backgroundPool,@xcorr,2,y(2,1:floor(length(y(2,:))/2)),frame_data.PSS_t;
+    thread1 =parfeval(backgroundPool,@xcorr,2,y(1,1:floor(length(y(1,:))/2)),frame_data.PSS_t);
+	thread2 =parfeval(backgroundPool,@xcorr,2,y(2,1:floor(length(y(2,:))/2)),frame_data.PSS_t);
     [corr_1,corr_pos_1] = fetchOutputs(thread1);
     [corr_2,corr_pos_2] = fetchOutputs(thread2);
 	[~,max_pos_1]=max(abs(corr_1));
