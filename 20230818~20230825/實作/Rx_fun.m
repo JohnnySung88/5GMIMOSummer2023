@@ -98,11 +98,11 @@ function [Time,Biterror,Capacity_sum,Rx1_SNR,Rx2_SNR,JPG_RGB] = Rx_fun(frame_dat
             end
         end
     else
-        Time=-1;
+        Time= -1;
         JPG_RGB = 0;
-        Biterror = -1;
-        Capacity_sum = -1;
-        Rx1_SNR = -1;
-        Rx2_SNR = -1;
+        Biterror = 0;
+        Capacity_sum = 0;
+        Rx1_SNR = 0;
+        Rx2_SNR = 0;
     end
 end
