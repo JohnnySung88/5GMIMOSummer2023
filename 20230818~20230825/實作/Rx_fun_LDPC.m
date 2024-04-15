@@ -56,8 +56,8 @@ function [Time,Biterror,Capacity_sum,Rx1_SNR,Rx2_SNR,JPG_RGB] = Rx_fun_LDPC(fram
         end
 
         % detector
-        norm_Y = Y ./ Rx_No;
-        norm_H = H_INTER ./ Rx_No;
+        norm_Y = Y ./ sqrt(Rx_No);
+        norm_H = H_INTER ./ sqrt(Rx_No);
 
         switch DTinfo
             case 'LMMSE'
