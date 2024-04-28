@@ -5,27 +5,24 @@ clear
 load('a.mat');
 b=a'*a;
 c=inv(b);
-g = @() inv(b)
-timeit(g)
-f = @() chol(b)
+f = @() inv(b)
 timeit(f)
-e = @() (inv((chol(b))'*chol(b)))
+g = @() chol(b)
+timeit(g)
+
+% MATLAB
+e = @() (Cholinv(b))
 timeit(e)
-d = chol(b);
-d = inv(d'*d);
+d = Cholinv(b);
 sum(sum(abs(c-d)^2, 2))
 
-
-b=a'*a;
-c=inv(b);
+% C
 e = @() CDI(b)
 timeit(e)
 d = CDI(b);
 sum(sum(abs(c-d)^2, 2))
 
-
-b=a'*a;
-c=inv(b);
+% C+LAPACK
 e = @() CD(b)
 timeit(e)
 d = CD(b);
