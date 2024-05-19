@@ -74,7 +74,7 @@ for a=1:length(SNR_in_dB)
     
 	h=[H_Channel,zeros(1,2042)];
 	H = fftshift(fft(h));
-	H_Data = [H(1,202:1023),H(1,1025:1846)].';
+	H_Data = [H(1,203:1024),H(1,1026:1847)].';
 	H_frame = repmat(H_Data,1,560);
 
 	X_hat_MATLAB = (Y_MATLAB ./ H_frame)/NF;
