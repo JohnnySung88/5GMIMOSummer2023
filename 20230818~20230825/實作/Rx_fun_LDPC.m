@@ -1,4 +1,4 @@
-function [Time,Biterror,Capacity_sum,Rx1_SNR,Rx2_SNR,JPG_RGB] = Rx_fun_LDPC(frame_data,Rx_signal,DTinfo,CFO_ignore,iteration)
+function [Time,Biterror,Capacity_sum,Rx1_SNR,Rx2_SNR,JPG_RGB] = Rx_fun_LDPC(frame_data,Rx_signal,DTinfo,CFO_ignore,iteration,RandOrder)
     Fs  = frame_data.Fs;
     Tx  = frame_data.Tx;
     Rx  = frame_data.Rx;
@@ -15,13 +15,14 @@ function [Time,Biterror,Capacity_sum,Rx1_SNR,Rx2_SNR,JPG_RGB] = Rx_fun_LDPC(fram
     y = Sync(frame_data,y);
     if(sum(y,'all')~=0)
         % CFO估測(需多重路徑猜測)
-        [hat_delta_f,t] = CFO(frame_data,y,Fs,CFO_ignore);
-        
+        % [hat_delta_f,t] = CFO(frame_data,y,Fs,CFO_ignore);
+        f(1) = parfeval(backgroundPool,@CFO,2,frame_data,y,Fs,CFO_ignore);
         % 移除CP
         y_rmCP(:,:,1) = reshape(y(1,frame_data.CPdataPos),2048,560);
         y_rmCP(:,:,2) = reshape(y(2,frame_data.CPdataPos),2048,560);
         
         % CFO補償
+        [hat_delta_f,t] = fetchOutputs(f(1));
         y_rmCP = y_rmCP ./ exp( 1i * 2 * pi * hat_delta_f * t);
 
         % FFT
@@ -35,13 +36,18 @@ function [Time,Biterror,Capacity_sum,Rx1_SNR,Rx2_SNR,JPG_RGB] = Rx_fun_LDPC(fram
         H_LMMSE = pagemtimes(frame_data.LMMSE , DMRS_DATA' .*Y_DMRS);
         
         % 雜訊估測
-        Rx_No = SNR_EST(frame_data,H_LMMSE,Y_DMRS);
+        % Rx_No = SNR_EST(frame_data,H_LMMSE,Y_DMRS);
+        f(5) = parfeval(backgroundPool,@SNR_EST,1,frame_data,H_LMMSE,Y_DMRS);
 
         % 線性內差(LMMSE only) 
-        H_INTER(:,3:549,1,1) = interp2(X1,Y1,H_LMMSE(:,:,1,1),Xq,Yq);
-        H_INTER(:,3:549,1,2) = interp2(X1,Y1,H_LMMSE(:,:,1,2),Xq,Yq);
-        H_INTER(:,3:549,2,1) = interp2(X1,Y1,H_LMMSE(:,:,2,1),Xq,Yq);
-        H_INTER(:,3:549,2,2) = interp2(X1,Y1,H_LMMSE(:,:,2,2),Xq,Yq);
+        % H_INTER(:,3:549,1,1) = interp2(X1,Y1,H_LMMSE(:,:,1,1),Xq,Yq);
+        % H_INTER(:,3:549,1,2) = interp2(X1,Y1,H_LMMSE(:,:,1,2),Xq,Yq);
+        % H_INTER(:,3:549,2,1) = interp2(X1,Y1,H_LMMSE(:,:,2,1),Xq,Yq);
+        % H_INTER(:,3:549,2,2) = interp2(X1,Y1,H_LMMSE(:,:,2,2),Xq,Yq);
+        f(1) = parfeval(backgroundPool,@interp2,1,X1,Y1,H_LMMSE(:,:,1,1),Xq,Yq);
+        f(2) = parfeval(backgroundPool,@interp2,1,X1,Y1,H_LMMSE(:,:,1,2),Xq,Yq);
+        f(3) = parfeval(backgroundPool,@interp2,1,X1,Y1,H_LMMSE(:,:,2,1),Xq,Yq);
+        f(4) = parfeval(backgroundPool,@interp2,1,X1,Y1,H_LMMSE(:,:,2,2),Xq,Yq);
 
         % 邊界
         for symbol  = 549:560 
@@ -54,6 +60,13 @@ function [Time,Biterror,Capacity_sum,Rx1_SNR,Rx2_SNR,JPG_RGB] = Rx_fun_LDPC(fram
             back_dist  = 3 - symbol;
             H_INTER(:,symbol,:,:) = ( back_dist * H_LMMSE(:,40,:,:) + head_dist * H_LMMSE(:,1,:,:)  )  /14;
         end
+        H_INTER(:,3:549,1,1) = fetchOutputs(f(1));
+        H_INTER(:,3:549,1,2) = fetchOutputs(f(2));
+        H_INTER(:,3:549,2,1) = fetchOutputs(f(3));
+        H_INTER(:,3:549,2,2) = fetchOutputs(f(4));
+
+        %雜訊估測 (回傳)
+	    Rx_No = fetchOutputs(f(5));	
 
         % detector
         norm_Y = Y ./ sqrt(Rx_No);
@@ -75,19 +88,32 @@ function [Time,Biterror,Capacity_sum,Rx1_SNR,Rx2_SNR,JPG_RGB] = Rx_fun_LDPC(fram
         yQ = imag(LDPC_mod_L_hat).';
         No = (Rx_No(1) + Rx_No(2))/2;
         LLR = zeros( 4*length(LDPC_mod_L_hat) ,1);
-        LLR(1:4:length(LLR)) = LLRcul(yI,No, 1, 3,-1,-3);
-        LLR(2:4:length(LLR)) = LLRcul(yI,No,-1, 1,-3, 3);
-        LLR(3:4:length(LLR)) = LLRcul(yQ,No,-1,-3, 1, 3);
+        % LLR(1:4:length(LLR)) = LLRcul(yI,No, 1, 3,-1,-3);
+        % LLR(2:4:length(LLR)) = LLRcul(yI,No,-1, 1,-3, 3);
+        % LLR(3:4:length(LLR)) = LLRcul(yQ,No,-1,-3, 1, 3);
+        f(1) = parfeval(backgroundPool,@LLRcul,1,yI,No, 1, 3,-1,-3);
+        f(2) = parfeval(backgroundPool,@LLRcul,1,yI,No,-1, 1,-3, 3);
+        f(3) = parfeval(backgroundPool,@LLRcul,1,yQ,No,-1,-3, 1, 3);
         LLR(4:4:length(LLR)) = (1/(2*No)) .* ( min( (yQ-[-1; 1]).^2 ) - min( (yQ-[-3; 3]).^2 ));
+        LLR(1:4:length(LLR)) = fetchOutputs(f(1));
+        LLR(2:4:length(LLR)) = fetchOutputs(f(2));
+        LLR(3:4:length(LLR)) = fetchOutputs(f(3));
 
         LLR_part = reshape(LLR,[],1296);
         LLR_part = permute(LLR_part,[2,1]);
 
-        LLR_MSA = LDPC_MSA(LLR_part,iteration,frame_data.H_row_master,frame_data.H_row_master_size,5464,0.5);
-        JPG_bin_hat = reshape(LLR_MSA(1:648,:).'<0,[],8);
+        LLR_MSA = LDPC_MSA(single(LLR_part),single(iteration),single(frame_data.H_row_master),single(frame_data.H_row_master_size),single(5464),single(0.5));
+        % JPG_bin_hat = reshape(LLR_MSA(1:648,:).'<0,[],8); %orignal
+        Pict_bin_RE_hat = LLR_MSA(1:648,:).'<0; % 5464*648
+        % rand order
+        [m, n] = size(Pict_bin_RE_hat);
+        NumElements = m*n;
+        Pict_bin_RE_flatten = reshape(Pict_bin_RE_hat, [1 NumElements]);
+        [value, restored_order] = sort(RandOrder);
+        Pict_bin_RE_flatten_rand = Pict_bin_RE_flatten(restored_order);
+        Pict_bin_RE_rand = reshape(Pict_bin_RE_flatten_rand,[m, n]);
+        JPG_bin_hat = reshape(Pict_bin_RE_rand,[],8);
 
-        % Time
-        Time = toc;
 
         % LDPC decode(image)
         bin_table = 2 .^ (7:-1:0);
@@ -108,8 +134,8 @@ function [Time,Biterror,Capacity_sum,Rx1_SNR,Rx2_SNR,JPG_RGB] = Rx_fun_LDPC(fram
         Biterror = sum(JPG_bin_hat ~= frame_data.JPG_bin,'all');
 
         % SNR
-        Rx1_SNR = -10*log10(Rx_No(1)/ mean(abs(Y(:,:,1).^2),'all'));
-        Rx2_SNR = -10*log10(Rx_No(2)/ mean(abs(Y(:,:,2).^2),'all'));
+        Rx1_SNR = -10*log10(Rx_No(1)/ (mean(abs(H_LMMSE(:,:,1,:).^2),'all')) );
+        Rx2_SNR = -10*log10(Rx_No(2)/ (mean(abs(H_LMMSE(:,:,2,:).^2),'all')) );
 
         % Capacity
         SNR = 1/No;
@@ -120,6 +146,8 @@ function [Time,Biterror,Capacity_sum,Rx1_SNR,Rx2_SNR,JPG_RGB] = Rx_fun_LDPC(fram
                 Capacity_sum = Capacity_sum + abs( log2( det( eye(Tx) + (1/Tx) .* SNR .* (unit_H*unit_H'))));
             end
         end
+        % Time
+        Time = toc;
     else
         Time = -1;
         JPG_RGB = 0;

@@ -85,8 +85,8 @@ for frame=1:frame_num
 	[syn_max , syn_pos]	= max(syn_corr);
 	[ram_a,ram_b]		= size(syn_corr);
 	%紀錄目前偏移
-	element_pos = 623378;
-	frame_shift_ans(frame) = ceil(ram_a/2)- element_pos -syn_pos - Blank_num;
+	element_pos = 623376;
+	frame_shift_ans(frame) = ceil(ram_a/2) - element_pos - syn_pos - Blank_num - 1;
 end
 
 %畫圖
