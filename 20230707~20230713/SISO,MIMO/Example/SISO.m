@@ -2,12 +2,12 @@
 clear
 clc
 
-Tx =1;         %¶Ç°eºİ­Ó¼Æ
-Rx =1;         %±µ¦¬ºİ­Ó¼Æ
+Tx =1;         %å‚³é€ç«¯å€‹æ•¸
+Rx =1;         %æ¥æ”¶ç«¯å€‹æ•¸
 
-%¥i¥H¥ı¦Û¤v³]
-data_num = 100000;         % data¶q(ª`·NBER­n¶]¨ì10^(-3)!!)
-SNR_in_dB = 0:5:40;        % ¦Û¤v³]­qÂø°T¤j¤p
+%å¯ä»¥å…ˆè‡ªå·±è¨­
+data_num = 100000;         % dataé‡(æ³¨æ„BERè¦è·‘åˆ°10^(-3)!!)
+SNR_in_dB = 0:5:40;        % è‡ªå·±è¨­è¨‚é›œè¨Šå¤§å°
 
 SER_SNR_ZF=zeros(3,length(SNR_in_dB));
 BER_SNR_ZF=zeros(3,length(SNR_in_dB));
@@ -19,7 +19,7 @@ for v=1:3
     QAM = 4^v;
     Eavg = ;
     NF = ;
-    q_bit = ;        % ¤@­Ósymbol¥i¥H¶Ç´X­Óbit
+    q_bit = ;        % ä¸€å€‹symbolå¯ä»¥å‚³å¹¾å€‹bit
     N = Tx;
 
     for  a=1:length(SNR_in_dB)
@@ -28,16 +28,16 @@ for v=1:3
         Es = 1;
         
         SER_ZF = 0;     
-        BER_ZF = 0;                         % ºâerror rate­n§@¥­§¡
+        BER_ZF = 0;                         % ç®—error rateè¦ä½œå¹³å‡
         SER_LMMSE = 0;  
         BER_LMMSE = 0;
         
         for seperate = 1:data_num
-            data = ;          % ÀH¾÷²£¥Í0~3 for 4QAM
-            bin_data = ;      % ±N 0~3 Âà¬° '00'~'11'
+            data = ;          % éš¨æ©Ÿç”¢ç”Ÿ0~3 for 4QAM
+            bin_data = ;      % å°‡ 0~3 è½‰ç‚º '00'~'11'
             X = ;             % 0~3 to complex (Modulation); remember to normalize
-            H = ;             % randn²£¥Íchannel(ª`·N¥¿³W¤Æªº°İÃD)
-            n = ;             % randn²£¥Ínoise variance=No
+            H = ;             % randnç”¢ç”Ÿchannel(æ³¨æ„æ­£è¦åŒ–çš„å•é¡Œ)
+            n = ;             % randnç”¢ç”Ÿnoise variance=No
             
             Y = ;
             
@@ -45,7 +45,7 @@ for v=1:3
             X_hat_ZF  =;
             data_hat_ZF = ;           %complex to 0~3  ; remember to inverse-normalize
             bin_data_hat = ;          %0~3 to '00'~'11'
-            % ºâSER/BER
+            % ç®—SER/BER
             SER_ZF = ;
             BER_ZF = ;
             
@@ -59,7 +59,7 @@ for v=1:3
            
         end
     
-%         «ö·ÓSNR§âºâ¦nªºSER/BER¦s¦b¯x°}¸Ì
+%         æŒ‰ç…§SNRæŠŠç®—å¥½çš„SER/BERå­˜åœ¨çŸ©é™£è£¡
         SER_SNR_ZF(v,a) = SER_ZF/data_num;
         BER_SNR_ZF(v,a) = BER_ZF/(data_num*q_bit);
         
@@ -69,7 +69,7 @@ for v=1:3
     end
 end
 % 
-% ¿é¤JSNR_in_dB©MSER
+% è¼¸å…¥SNR_in_dBå’ŒSER
 figure(1)
 semilogy(SNR_in_dB,SER_SNR_ZF(1,:),'r-X')
 hold on
@@ -89,7 +89,7 @@ xlabel('SNR (dB)')
 ylabel('SER')
 legend('4QAM ZF','16QAM ZF','64QAM ZF','4QAM LMMSE','16QAM LMMSE','64QAM LMMSE')
 
-%¿é¤JSNR_in_dB©MBER
+%è¼¸å…¥SNR_in_dBå’ŒBER
 figure(2)
 semilogy(SNR_in_dB,BER_SNR_ZF(1,:),'r-X')
 hold on
