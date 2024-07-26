@@ -16,12 +16,12 @@ BER_SNR_LMMSE=zeros(3,length(SNR_in_dB));
 %% choose QAM= 4/16/64;
 for v=1:3
     QAM = 4^v;
-    Eavg = (QAM-1)/3;
+    Eavg = (qammod([0:QAM-1],QAM) * qammod([0:QAM-1],QAM)') / QAM;
     NF = sqrt(Eavg);
     q_bit = log2(QAM);        % 一個symbol可以傳幾個bit
     N = Tx;
 
-    for  a=1:length(SNR_in_dB)
+    parfor  a=1:length(SNR_in_dB)
         SNR = 10^(SNR_in_dB(a)/10);
         No = 1/SNR;
         Es = 1;
