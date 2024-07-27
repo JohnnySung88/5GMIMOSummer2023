@@ -35,22 +35,22 @@ for v     = 1:3
         for seperate = 1:data_num
             data     = randi([0 QAM-1], Tx, 1);                             % 隨機產生0~3 for 4QAM
             bin_data = de2bi(data, q_bit, 'left-msb');                      % 將 0~3 轉為 '00'~'11'
-            X        = qammod(data, QAM, UnitAveragePower=true);            % 0~3 to complex (Modulation); remember to normalize
+            X        = NF*qammod(data, QAM, 'gray');                        % 0~3 to complex (Modulation); remember to normalize
             H        = (randn(Rx, Tx) + 1j*randn(Rx, Tx)) /sqrt(2*Tx);      % randn產生channel(注意正規化的問題)
             n        = (randn(Rx, 1)  + 1j*randn(Rx, 1))  *sqrt(No/2);      % randn產生noise variance=No
             Y        = H*X + n;
             
             %% type 1 = ZF
-            X_hat_ZF        = inv(H)*Y;
-            data_hat_ZF     = qamdemod(X_hat_ZF, QAM, UnitAveragePower=true);       % complex to 0~3; remember to inverse-normalize
-            bin_data_hat_ZF = de2bi(data_hat_ZF, q_bit, 'left-msb');                % 0~3 to '00'~'11'
+            X_hat_ZF        = (inv(H)*Y)/NF;
+            data_hat_ZF     = qamdemod(X_hat_ZF, QAM, 'gray');              % complex to 0~3; remember to inverse-normalize
+            bin_data_hat_ZF = de2bi(data_hat_ZF, q_bit, 'left-msb');        % 0~3 to '00'~'11'
             % SER/BER
             SER_ZF = SER_ZF + sum(data_hat_ZF     ~= data);
             BER_ZF = BER_ZF + sum(bin_data_hat_ZF ~= bin_data, 'all');
             %% type 2 = LMMSE
-            X_hat_LMMSE        = inv(H'*H + No*eye(N))*H'*Y;
-            data_hat_LMMSE     = qamdemod(X_hat_LMMSE, QAM, UnitAveragePower=true);     % complex to 0~3; remember to inverse-normalize
-            bin_data_hat_LMMSE = de2bi(data_hat_LMMSE, q_bit, 'left-msb');              % 0~3 to '00'~'11'
+            X_hat_LMMSE        = (inv(H'*H + No*eye(N))*H'*Y)/NF;
+            data_hat_LMMSE     = qamdemod(X_hat_LMMSE, QAM, 'gray');            % complex to 0~3; remember to inverse-normalize
+            bin_data_hat_LMMSE = de2bi(data_hat_LMMSE, q_bit, 'left-msb');      % 0~3 to '00'~'11'
             % SER/BER
             SER_LMMSE = SER_LMMSE + sum(data_hat_LMMSE     ~= data);
             BER_LMMSE = BER_LMMSE + sum(bin_data_hat_LMMSE ~= bin_data, 'all');
