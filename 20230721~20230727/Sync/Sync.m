@@ -27,11 +27,7 @@ g_SSS  = [zeros(202, 1);  SSS(1:822); 0;  SSS(823:end); zeros(201, 1)];
 % Sync Signal IFFT
 syn_t  = ifft(ifftshift(g_PSS))*sqrt(2048);
 
-% Bar Chart Parameters
-bar_x = -12:12;
-bar_y = zeros(1, 25);
-
-% Ans Zone
+% Init Frame Shift
 frame_shift_ans = zeros(1, frame_num);
 
 for frame  = 1:frame_num
@@ -84,10 +80,9 @@ for frame  = 1:frame_num
     % 產生接收訊號
     % n = sqrt(No/2)*(randn(1, 1228800) + randn(1, 1228800)*1i);      % randn產生noise variance = No
     % y = pure_y + n;
-	n = sqrt(No/2)*(randn(1, 1228800 + 2*Blank_num) + randn(1, 1228800 + 2*Blank_num)*1i); % randn產生noise variance = No
+	n = sqrt(No/2)*(randn(1, 1228800 + 2*Blank_num) + randn(1, 1228800 + 2*Blank_num)*1i);      % randn產生noise variance = No
 	y = [zeros(1, Blank_num), pure_y, zeros(1, Blank_num)] + n;     %noise off
 
-	% 接收後處理開始
 	% 同步偵測(Synchronization)
 	syn_corr            = xcorr(syn_t,y);
 	[syn_max, syn_pos]	= max(syn_corr);
@@ -98,11 +93,15 @@ for frame  = 1:frame_num
 	frame_shift_ans(frame) = ceil(ram_a/2) - element_pos - syn_pos - Blank_num - 1;
 end
 
-% Plot Figure
+% Bar Chart Parameters
+bar_x = -12:12;
+bar_y = zeros(1, 25);
 for i   = 1:25
 	num = i-13;
 	bar_y(i) = length(find(frame_shift_ans==num));
 end
+
+% Plot Figure
 bar(bar_x,bar_y);
 title('Synchronization 不同的偏移量次數')
 xlabel('偏移量')
