@@ -17,13 +17,13 @@ d = Cholinv(b);
 sum(sum(abs(c-d)^2, 2))
 
 % C
-e = @() CDI(b)
-timeit(e)
-d = CDI(b);
-sum(sum(abs(c-d)^2, 2))
-
-% C+LAPACK
 e = @() CD(b)
 timeit(e)
 d = CD(b);
+sum(sum(abs(c-d)^2, 2))
+
+% C+LAPACK
+e = @() CD_LAPACK(b)
+timeit(e)
+d = CD_LAPACK(b);
 sum(sum(abs(c-d)^2, 2))

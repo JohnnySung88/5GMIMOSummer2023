@@ -1,95 +1,136 @@
 #include "mex.h"
-#include <lapack.h>
+#include <stdlib.h>
+#include <stdio.h>
 #include <complex.h>
-//NOTICE: Using command:"mex CD.c -llapack" to compile
+#include <math.h>
 
-typedef double complex Complex;
-
-void inverseMatrixReal(int n, double *matrix, double *invMatrix) {
-    char uplo = 'U';  
-    int info;
-
-    dpotrf_(&uplo, &n, matrix, &n, &info);
-    if (info > 0) {
-        mexErrMsgTxt("Cholesky decomposition failed. The matrix is not positive definite.");
-    }
-
-    dpotri_(&uplo, &n, matrix, &n, &info);
-    if (info > 0) {
-        mexErrMsgTxt("Matrix inversion failed. The matrix is singular.");
-    }
-
-    for (int i = 0; i < n; i++) {
-        for (int j = 0; j <= i; j++) {
-            invMatrix[i*n + j] = matrix[i*n + j];
-            invMatrix[j*n + i] = matrix[i*n + j];
+void make_L(int M, double complex *l , double complex *mat){
+    double complex sum_2conj;
+    for(int col = 0;col < M;col++){
+        for(int row = 0;row < M;row++){
+            if(row == col){
+                sum_2conj = 0;
+                for(int ram = 0; ram < col; ram++)
+                    sum_2conj += l[row*M + ram] * conj(l[row*M + ram]);
+                l[row*M + col] = csqrt(mat[row*M + col] - sum_2conj);
+            }
+            else if(col < row){
+                sum_2conj = 0;
+                for(int ram = 0; ram < col; ram++)
+                    sum_2conj += l[row*M + ram] * conj(l[col*M + ram]);
+                l[row*M + col] = (1/l[col*M + col]) * (mat[row*M + col] - sum_2conj);
+            }
         }
     }
 }
 
-void inverseMatrixComplex(int n, Complex *matrix, Complex *invMatrix) {
-    char uplo = 'U';  
-    int info;
-
-    zpotrf_(&uplo, &n, matrix, &n, &info);
-    if (info > 0) {
-        mexErrMsgTxt("Cholesky decomposition failed. The matrix is not positive definite.");
-    }
-
-    zpotri_(&uplo, &n, matrix, &n, &info);
-    if (info > 0) {
-        mexErrMsgTxt("Matrix inversion failed. The matrix is singular.");
-    }
-
-    for (int i = 0; i < n; i++) {
-        for (int j = 0; j <= i; j++) {
-            invMatrix[i*n + j] = matrix[i*n + j];
-            invMatrix[j*n + i] = conj(matrix[i*n + j]);
+void invt_L(int M, double complex *l , double complex *L){
+    double complex *R = (double complex*) malloc(M * M * sizeof(double complex));
+    for(int row = 0;row < M;row++){
+        for(int col = 0;col < M;col++){
+            R[row*M + col] = L[row*M + col];
+            if(row == col)
+                l[row*M + col] = 1;
+            else
+                l[row*M + col] = 0;
         }
     }
+    for(int row = 0;row < M;row++){
+        for(int col = 0;col <= row;col++){
+            if(row != col){
+                for(int ram = 0;ram <= col;ram++)
+                    l[row*M + ram] -= R[row*M + col] * l[col*M + ram];
+                R[row*M + col] = 0;
+            }
+            else{
+                for(int ram = 0;ram <= col;ram++)
+                    l[row*M + ram] /= R[row*M + col];
+                R[row*M + col] = 1;
+            }
+        }
+    }
+    free(R);
 }
 
-void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
-    if (nrhs != 1) {
-        mexErrMsgTxt("Invalid number of input arguments. Expected 1 input.");
-    }
-    if (nlhs != 1) {
-        mexErrMsgTxt("Invalid number of output arguments. Expected 1 output.");
-    }
-
-    mwSize n = mxGetN(prhs[0]);
-
-    if (mxIsComplex(prhs[0])) {
-        double *realPart = mxGetPr(prhs[0]);
-        double *imagPart = mxGetPi(prhs[0]);
-
-        Complex *matrix = mxMalloc(n * n * sizeof(Complex));
-        for (int i = 0; i < n * n; i++) {
-            matrix[i] = realPart[i] + I*imagPart[i];
+void M_conj(int M, double complex *a , double complex *l){
+    double complex *H = (double complex*) malloc(M * M * sizeof(double complex));
+    for(int row = 0;row < M;row++){
+        for(int col = 0;col < M;col++){
+            a[row*M + col] = 0;
+            H[row*M + col] = conj(l[col*M + row]);
         }
+    }
+    for(int row = 0;row < M;row++)
+        for(int col = 0;col < M;col++)
+            for(int ram = 0;ram < M;ram++)
+                a[row*M + col] += H[row*M + ram] * l[ram*M + col];
+    free(H);
+}
 
-        mxArray *outMatrix = mxCreateDoubleMatrix(n, n, mxCOMPLEX);
-        double *realInvPart = mxGetPr(outMatrix);
-        double *imagInvPart = mxGetPi(outMatrix);
+void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
+{
+    /* Check for proper number of input and output arguments */    
+    if(nrhs!=1) {
+        mexErrMsgIdAndTxt( "MATLAB:mexFunction:invalidNumInputs",
+                "One input required.");
+    } 
+    if(nlhs!=1) {
+        mexErrMsgIdAndTxt( "MATLAB:mexFunction:invalidNumOutputs",
+                "One output required.");
+    } 
 
-        Complex *invMatrix = mxMalloc(n * n * sizeof(Complex));
-        inverseMatrixComplex(n, matrix, invMatrix);
+    /* Input must be of complex type */
+    if(!mxIsComplex(prhs[0])) {
+        mexErrMsgIdAndTxt("MATLAB:mexFunction:inputNotComplex",
+                          "Input must be complex.");
+    }
+    
+    /* Get the size of the input matrix */
+    int M = mxGetM(prhs[0]); //rows
+    int N = mxGetN(prhs[0]); //columns
 
-        for (int i = 0; i < n * n; i++) {
-            realInvPart[i] = creal(invMatrix[i]);
-            imagInvPart[i] = cimag(invMatrix[i]);
+    /* We expect square matrices, check dimensions */
+    if(M != N) {
+        mexErrMsgIdAndTxt("MATLAB:mexFunction:invalidInput",
+                          "Input must be a square matrix.");
+    }
+
+    /* Create output matrix */
+    plhs[0] = mxCreateDoubleMatrix(M, N, mxCOMPLEX);
+
+    /* Create array of complex numbers for input and output matrices */
+    double complex* inputMat = (double complex*) malloc(M * N * sizeof(double complex));
+    double complex* outputMat = (double complex*) malloc(M * N * sizeof(double complex));
+    double complex* L = (double complex*) malloc(M * N * sizeof(double complex));
+    double complex* l = (double complex*) malloc(M * N * sizeof(double complex));
+
+    double* inputReal = mxGetPr(prhs[0]);
+    double* inputImag = mxGetPi(prhs[0]);
+    double* outputReal = mxGetPr(plhs[0]);
+    double* outputImag = mxGetPi(plhs[0]);
+
+    /* Fill in the input matrix */
+    for(int i = 0; i < M; i++){
+        for(int j = 0; j < N; j++){
+            inputMat[j*M + i] = inputReal[j*M + i] + I * inputImag[j*M + i];
         }
-
-        mxFree(matrix);
-        mxFree(invMatrix);
-        plhs[0] = outMatrix;
     }
-    else {
-        double *matrix = mxGetPr(prhs[0]);
-        mxArray *outMatrix = mxCreateDoubleMatrix(n, n, mxREAL);
-        double *invMatrix = mxGetPr(outMatrix);
 
-        inverseMatrixReal(n, matrix, invMatrix);
-        plhs[0] = outMatrix;
+    make_L(M, L, inputMat);   
+    invt_L(M, l, L);   
+    M_conj(M, outputMat, l);   
+
+    /* Write the result to the output matrix */
+    for(int i = 0; i < M; i++){
+        for(int j = 0; j < N; j++){
+            outputReal[j*M + i] = creal(outputMat[j*M + i]);
+            outputImag[j*M + i] = cimag(outputMat[j*M + i]);
+        }
     }
+
+    /* Free allocated memory */
+    free(inputMat);
+    free(outputMat);
+    free(L);
+    free(l);
 }
