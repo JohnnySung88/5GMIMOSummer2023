@@ -1,7 +1,9 @@
-% Sync
-SSB_5G_NR;
+% 5G Synchronization
+clear
+clc
 
 % Default Settings
+SSB_5G_NR;
 Tx = 1;
 Rx = 1;
 SNR_in_dB = 20;
