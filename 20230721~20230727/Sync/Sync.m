@@ -3,12 +3,12 @@ clear
 clc
 
 % Default Settings
+SSB_5G_NR;      %生成PSS SSS PBCH資料
 Tx = 1;
 Rx = 1;
 SNR_in_dB = 20;
 frame_num = 1e4;
 Blank_num = 150;
-SSB_5G_NR;      %生成PSS SSS PBCH資料
 
 % 16QAM init
 QAM = 16;
