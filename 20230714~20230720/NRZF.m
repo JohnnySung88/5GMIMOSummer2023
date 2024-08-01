@@ -56,11 +56,9 @@ for a      = 1:length(SNR_in_dB)
         if mod(symbol, 28) - 1;
             y_rmCP(:, symbol) = y(1, index+144:index+144+2048-1);
             index = index + 144 + 2048;
-            symbol = symbol + 1;
         else
             y_rmCP(:, symbol) = y(1, index+208:index+208+2048-1);
             index = index + 208 + 2048;
-            symbol = symbol + 1;
         end
     end
     % FFT
