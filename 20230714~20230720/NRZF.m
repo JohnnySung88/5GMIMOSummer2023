@@ -5,7 +5,7 @@ clc
 % Tx = 1;     % 傳送端個數
 % Rx = 1;     % 接收端個數
 
-frame   = 1644*560;
+one_frame  = 1644*560;
 SNR_in_dB  = 0:1:16;        % 自己設訂雜訊大小
 BER_SNR_ZF = zeros(1,length(SNR_in_dB));
 
@@ -20,7 +20,7 @@ for a      = 1:length(SNR_in_dB)
     No     = Es/SNR;
     BER_ZF = 0; 
     % Mod
-    dec_data     = randi([0 QAM-1], 1644, 560);
+    dec_data = randi([0 QAM-1], 1644, 560);
     bin_data = de2bi(dec_data, q_bit, 'left-msb');
     mod_data = NF*qammod(dec_data, QAM, 'gray');
     % Guard Band
@@ -78,7 +78,7 @@ for a      = 1:length(SNR_in_dB)
     bin_data_hat_ZF = de2bi(dec_data_hat_ZF, q_bit, 'left-msb');
     % BER Calculation
     BER_ZF = sum(bin_data_hat_ZF ~= bin_data, 'all');
-    BER_SNR_ZF(1, a)    = BER_ZF/(frame*q_bit);
+    BER_SNR_ZF(1, a) = BER_ZF/(one_frame*q_bit);
 end
 
 %% 輸入SNR_in_dB
