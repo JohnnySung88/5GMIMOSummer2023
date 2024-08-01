@@ -92,7 +92,7 @@ for a=1:length(SNR_in_dB)
 % 				X_hat(SC,slot,:)	= inv( unit_H'* unit_H ) * unit_H' * unit_Y;
 % 			end
 % 		end
-		X_hat = ZFDC(Y,H_frame,Tx);
+		X_hat = ZFD_4x4(Y,H_frame,Tx);
         X_hat = X_hat/NF;
 		%demod
 		data_dec_hat = qamdemod(X_hat,QAM,'gray');

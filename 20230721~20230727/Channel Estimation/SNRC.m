@@ -60,7 +60,7 @@ for i=1:length(SNR_weights) % New loop for different SNR weights
 		    %通道與雜訊
 		    PowerdB 		= [ -2 -8 -10 -12 -15 -18];
 		    Total_H_Power 	= sum(10.^(PowerdB/10)); 	%總通道能量 = 1
-		    Ntap = 6;									%通道數量
+			Ntap		    = length(PowerdB);          %通道數量
 		    H_Channel 	=  sqrt(10.^(PowerdB/10));
 		    H_Channel   =  H_Channel .* ( sqrt( 1/(2*Tx) ) * ( randn(1,Ntap) + 1i*randn(1,Ntap) ) );
 		    %訊號通過通道
