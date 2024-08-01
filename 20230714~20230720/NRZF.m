@@ -5,7 +5,7 @@ clc
 % Tx = 1;     % 傳送端個數
 % Rx = 1;     % 接收端個數
 
-data_num   = 1644*560;
+frame   = 1644*560;
 SNR_in_dB  = 0:1:16;        % 自己設訂雜訊大小
 BER_SNR_ZF = zeros(1,length(SNR_in_dB));
 
@@ -20,9 +20,9 @@ for a      = 1:length(SNR_in_dB)
     No     = Es/SNR;
     BER_ZF = 0; 
     % Mod
-    data     = randi([0 QAM-1], 1644, 560);
-    bin_data = de2bi(data, q_bit, 'left-msb');
-    mod_data = NF*qammod(data, QAM, 'gray');
+    dec_data     = randi([0 QAM-1], 1644, 560);
+    bin_data = de2bi(dec_data, q_bit, 'left-msb');
+    mod_data = NF*qammod(dec_data, QAM, 'gray');
     % Guard Band
     DC = zeros(1, 560);
     X  = [zeros(202, 560); mod_data(1:822, :); DC; mod_data(823:end, :); zeros(201, 560)];
@@ -74,11 +74,11 @@ for a      = 1:length(SNR_in_dB)
 	H_frame = repmat(H_Data, 1, 560);
 	X_hat_ZF = (Y ./ H_frame)/NF;
     % Demod
-    data_hat_ZF = qamdemod(X_hat_ZF, QAM, 'gray');
-    bin_data_hat_ZF = de2bi(data_hat_ZF, q_bit, 'left-msb');
+    dec_data_hat_ZF = qamdemod(X_hat_ZF, QAM, 'gray');
+    bin_data_hat_ZF = de2bi(dec_data_hat_ZF, q_bit, 'left-msb');
     % BER Calculation
     BER_ZF = sum(bin_data_hat_ZF ~= bin_data, 'all');
-    BER_SNR_ZF(1, a)    = BER_ZF/(data_num*q_bit);
+    BER_SNR_ZF(1, a)    = BER_ZF/(frame*q_bit);
 end
 
 %% 輸入SNR_in_dB
