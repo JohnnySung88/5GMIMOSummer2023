@@ -30,7 +30,7 @@ for a      = 1:length(SNR_in_dB)
         DC = zeros(1, 560, Tx);
         X  = [zeros(202, 560, Tx); mod_data(1:822, :, :); DC; mod_data(823:end, :, :); zeros(201, 560, Tx)];
         % IFFT
-        x = ifft(ifftshift(X))*sqrt(2048);
+        x = ifft(ifftshift(X, 1))*sqrt(2048);
         % ADD Cyclic Prefix
         x_CP  = zeros(1, 1228800, Tx);
         index = 1;
