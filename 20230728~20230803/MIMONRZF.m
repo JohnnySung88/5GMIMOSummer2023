@@ -6,7 +6,7 @@ Tx = 4;     % 傳送端個數
 Rx = 4;     % 接收端個數
 
 one_frame  = 1644*560;
-frame_num  = 1000;
+frame_num  = 200;
 SNR_in_dB  = 0:5:40;        % 自己設訂雜訊大小
 BER_SNR_ZF = zeros(1,length(SNR_in_dB));
 
@@ -48,7 +48,7 @@ for a      = 1:length(SNR_in_dB)
         PowerdB_MIMO  = repmat(PowerdB,1,Rx,Tx);
         H_Channel     = sqrt(10.^(PowerdB_MIMO./10));
         Ntap	      = length(PowerdB);
-        H_Channel     = H_Channel .* (sqrt(1/2*Tx) * ( randn(1,Ntap,Rx,Tx) + 1i*randn(1,Ntap,Rx,Tx) ) );
+        H_Channel     = H_Channel .* ( sqrt( 1/(2*Tx) ) .* ( randn(Ntap,Rx,Tx) + 1i*randn(Ntap,Rx,Tx) ) );
         Total_H_Power = sum(10.^(PowerdB/10));      % 總通道能量 = 1
         % Convolution
         pure_y = zeros(Rx,1228800+5);
@@ -82,7 +82,7 @@ for a      = 1:length(SNR_in_dB)
         % Remove Guard Band
         Y = [Y_fft(203:1024, :, :); Y_fft(1026:1847, :, :)];
         % ZF Detector
-        h = [H_Channel, zeros(2042,Rx,Tx)];
+        h = [H_Channel; zeros(2042,Rx,Tx)];
         H = fftshift(fft(h, [], 1),1);
         H_Data = [H(203:1024,:,:);H(1026:1847,:,:)]; ;
         H_frame = permute(repmat( H_Data(:,:,:),1,1,1,560),[1 4 2 3]  );
