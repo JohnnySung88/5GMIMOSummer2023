@@ -79,7 +79,6 @@ for a      = 1:length(SNR_in_dB)
     BER_SNR_ZF(1, a) = BER_ZF/(one_frame*q_bit);
 end
 
-%% 輸入SNR_in_dB
 figure(1)
 semilogy(SNR_in_dB,BER_SNR_ZF(1,:), 'r-X', 'LineWidth',2)
 hold on
