@@ -1,3 +1,4 @@
+// Zero Forcing Detection for 4x4 MIMO System 
 #include "mex.h"
 #include <complex.h>
 #include <math.h>
