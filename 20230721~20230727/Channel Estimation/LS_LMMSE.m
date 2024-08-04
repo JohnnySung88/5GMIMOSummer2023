@@ -110,7 +110,7 @@ plot(SNR_in_dB,MSE_dB_LS   ,'r-','LineWidth',2);
 hold on;
 plot(SNR_in_dB,MSE_dB_LMMSE,'b-','LineWidth',2);
 hold on;
-title('LS 與 LMMSE 的MSE比較');
+title('LS 與 LMMSE 的MSE 比較');
 grid on;
 xlabel('SNR (dB)');
 ylabel('MSE (dB)');
