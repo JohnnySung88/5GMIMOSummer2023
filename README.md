@@ -1,4 +1,4 @@
-# Matlab2023Summer
+# MatlabSummer2023
 
 How to use C on MATLAB
 1. Using C environment
