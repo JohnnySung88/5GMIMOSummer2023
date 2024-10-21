@@ -1,4 +1,4 @@
-# MatlabSummer2023
+# 5G_MIMO_OFDM_Summer2023
 
 How to use C on MATLAB
 1. Using C environment
